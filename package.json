@@ -1,0 +1,16 @@
+{
+  "name": "godsaeng-fighter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GODSAENG FIGHTER - 갓생 배틀 앱",
+  "scripts": {
+    "sync": "npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

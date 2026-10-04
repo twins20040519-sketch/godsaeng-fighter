@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GODSAENG FIGHTER</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Do+Hyeon&family=Noto+Sans+KR:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== 꾸미기 1: 색과 글꼴은 여기만 바꾸면 앱 전체가 바뀌어요 ===== */
+:root{
+  --bg:#0d0a2a;      /* 배경 */
+  --panel:#1b1650;   /* 카드 배경 */
+  --ink:#f4f1ff;     /* 글자 */
+  --sub:#a59fd6;     /* 보조 글자 */
+  --red:#e63a2e;     /* 체력바 바탕, 포인트 */
+  --yel:#ffd23f;     /* 강조 (제목, 버튼) */
+  --cyan:#38d6ff;    /* 보조 강조 */
+  --line:#3a3392;    /* 테두리 */
+  --font-title:"Do Hyeon","Noto Sans KR",sans-serif;
+  --font-pixel:"Press Start 2P","Courier New",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background-color:var(--bg);background-image:linear-gradient(180deg,var(--bg) 0%,#2b1659 60%,#5a1d4a 100%);background-attachment:fixed;color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;line-height:1.5}
+main{max-width:480px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 100px}
+.px{font-family:var(--font-pixel)}
+h1{font-family:var(--font-title);font-weight:400;font-size:40px;line-height:1.1;margin:0 0 4px;color:var(--yel);text-shadow:3px 3px 0 var(--red),6px 6px 0 #000}
+h2{font-family:var(--font-title);font-weight:400;font-size:22px;margin:18px 0 10px;color:var(--cyan)}
+.sub{color:var(--sub);font-size:13px;margin:8px 0}
+.card{background:var(--panel);border:3px solid var(--line);box-shadow:4px 4px 0 #000;padding:14px;margin-bottom:12px}
+.btn,button.pk{font:inherit;font-weight:700;font-size:15px;border:3px solid #000;background:var(--yel);color:#000;padding:9px 14px;cursor:pointer;box-shadow:3px 3px 0 #000}
+.btn.alt{background:var(--ink)}
+input[type=text],input[type=time],input[type=number]{font:inherit;width:100%;padding:9px;margin:6px 0 10px;border:3px solid #000;background:var(--ink);color:#000}
+label{font-size:13px;color:var(--sub);display:block}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.cam{display:block;width:100%;aspect-ratio:4/3;background:#000;border:3px solid #000;object-fit:cover;transform:scaleX(-1)}
+button.pk{background:var(--panel);color:var(--ink);border-color:var(--line);display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 4px}
+button.pk[aria-pressed=true]{border-color:var(--yel);background:#2d2480}
+.pk .ic{font-size:38px;line-height:1.1}
+.pk .px{font-size:7px}
+.pk.lock .ic{filter:grayscale(1);opacity:.55}
+.mem{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:2px dashed var(--line)}
+.mem:last-child{border:0}
+.mem .av{font-size:26px}
+.rk{display:grid;grid-template-columns:34px 1fr auto 52px;gap:6px;align-items:center;padding:8px 6px;border-bottom:2px dashed var(--line);font-size:14px}
+.rk.me{background:#2d2480;border:2px solid var(--yel)}
+.rk b{font-family:var(--font-pixel);font-size:11px;color:var(--cyan)}
+.rk .pt{color:var(--yel);font-weight:700;text-align:right}
+.bars{display:grid;grid-template-columns:1fr 36px 1fr;gap:8px}
+.hp{height:22px;background:var(--red);border:3px solid #fff;box-shadow:3px 3px 0 #000;display:flex}
+.hp.l{justify-content:flex-end}
+.hp i{display:block;height:100%;background:var(--yel);transition:width .6s steps(8)}
+.nm{font-family:var(--font-pixel);font-size:8px;margin-top:6px}
+.nm.r{text-align:right}
+.ring{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;text-align:center;margin:16px 0 8px;border-bottom:4px solid #000;padding-bottom:10px}
+.ft{font-size:64px;line-height:1}
+.ft.me{display:inline-block}
+.art{display:block;margin:0 auto;overflow:visible}
+.vs{font-family:var(--font-pixel);font-size:18px;color:var(--red);text-shadow:2px 2px 0 #000;padding:0 6px 14px}
+/* 배틀 애니메이션 */
+.ring{position:relative}
+.fx{display:inline-block}
+.fx.rv{transform:scaleX(-1)}
+.fx .bd{display:block;animation:idle .8s steps(2) infinite}
+.fx.rv:not(.atk):not(.hit):not(.cast) .bd{animation-delay:-.4s}
+.fx.atk .bd{animation:atk .5s steps(5)}
+.fx.cast .bd{animation:cast .6s steps(4)}
+.fx.hit .bd{animation:hit .45s steps(6)}
+@keyframes idle{50%{transform:translateY(-4px)}}
+@keyframes atk{0%{transform:none}35%,60%{transform:translate(46px,-8px)}100%{transform:none}}
+@keyframes cast{0%{transform:none}30%{transform:translateX(-8px)}50%,80%{transform:translateX(10px)}100%{transform:none}}
+@keyframes hit{0%,100%{transform:none;filter:none}20%,60%{transform:translateX(-14px) rotate(-6deg);filter:brightness(2.5)}40%,80%{transform:translateX(-8px);filter:none}}
+.ball{position:absolute;bottom:52px;left:28%;width:18px;height:18px;background:var(--cyan);border:3px solid #fff;box-shadow:0 0 0 3px #000,0 0 14px var(--cyan);opacity:0;pointer-events:none}
+.ball.go-r{animation:ballr .45s steps(6)}
+.ball.go-l{animation:balll .45s steps(6)}
+@keyframes ballr{from{left:28%;opacity:1}to{left:66%;opacity:1}}
+@keyframes balll{from{left:66%;opacity:1}to{left:28%;opacity:1}}
+.pow{position:absolute;top:0;font-family:var(--font-pixel);font-size:15px;color:var(--yel);text-shadow:2px 2px 0 var(--red),4px 4px 0 #000;opacity:0;pointer-events:none}
+.pow.sp{color:var(--cyan);font-size:18px}
+.pow.r{right:8%}.pow.l{left:8%}
+.pow.on{animation:pow .6s steps(6)}
+@keyframes pow{0%{opacity:1;transform:scale(.4)}30%{opacity:1;transform:scale(1.3) rotate(-8deg)}100%{opacity:0;transform:translateY(-14px)}}
+.ring.shake{animation:shake .3s steps(4)}
+@keyframes shake{25%{transform:translate(-4px,2px)}50%{transform:translate(4px,-2px)}75%{transform:translate(-2px,0)}}
+.hp.flash{animation:flash .3s steps(2)}
+@keyframes flash{50%{border-color:var(--yel);filter:brightness(1.8)}}
+@media (prefers-reduced-motion:reduce){.fx .bd,.fx.atk .bd,.fx.cast .bd,.fx.hit .bd,.ring.shake,.ball.go-r,.ball.go-l{animation:none!important}}
+/* 책벌레: 진행률 */
+.bkt{font-family:var(--font-title);font-size:22px;color:var(--ink);margin-bottom:8px}
+.bkbar{height:22px;background:#000;border:3px solid #fff;box-shadow:3px 3px 0 #000}
+.bkbar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--cyan) 0 10px,#1fa8d6 10px 12px);transition:width .6s steps(8)}
+.bkn{margin-top:8px;font-size:14px}
+.bkn b{font-family:var(--font-pixel);font-size:13px;color:var(--cyan)}
+/* 배틀 방식 */
+.row{display:flex;gap:8px;align-items:center}
+.row input{margin:6px 0;flex:1;min-width:0}
+.mic{font-size:34px}
+.mt{font-size:9px;color:var(--cyan)}
+.code{text-align:center}
+.cd{font-size:22px;color:var(--yel);letter-spacing:2px;margin:6px 0 12px;text-shadow:2px 2px 0 #000}
+.mini{gap:6px}
+.mm{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;padding:6px 2px;border:2px solid var(--line);text-align:center;word-break:keep-all}
+.mm.me{border-color:var(--yel);background:#2d2480}
+.match{text-align:center}
+.mrow{display:flex;justify-content:center;align-items:center;gap:18px;margin:14px 0}
+.match .q{font-family:var(--font-pixel);font-size:40px;color:var(--sub);animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+.shot{display:inline-block;position:relative;color:#000;font-size:15px;margin-top:4px}
+.shot input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.shot:focus-within{outline:3px solid var(--cyan);outline-offset:2px}
+/* 연속 인증 스트릭 */
+.stk{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:700;color:var(--ink);background:#000;border:2px solid var(--line);padding:5px 10px;margin:0 0 6px;cursor:pointer;box-shadow:3px 3px 0 var(--line)}
+.stk.warn{border-color:var(--red);box-shadow:3px 3px 0 var(--red)}
+.stk.ok{border-color:var(--yel);box-shadow:3px 3px 0 var(--yel)}
+.stk.gift{background:var(--yel);color:#000;border-color:#000;box-shadow:3px 3px 0 #000}
+.stk b{font-family:var(--font-pixel);font-size:11px;color:var(--yel)}
+.stk.gift b{color:#000}
+.flame{display:inline-block;animation:flick .5s steps(2) infinite}
+@keyframes flick{50%{transform:scale(1.15) rotate(-6deg)}}
+.stkc .flame{font-size:46px}
+.big2{font-family:var(--font-title);font-size:32px;line-height:1.1;color:var(--yel);text-shadow:2px 2px 0 #000}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:14px 0 4px;text-align:center;font-size:11px;color:var(--sub)}
+.wk i{display:grid;place-items:center;aspect-ratio:1;margin-top:4px;border:2px solid var(--line);font-style:normal;font-size:14px;color:#000}
+.wk i.on{background:var(--yel);border-color:#000}
+.wk i.td{outline:2px dashed var(--yel);outline-offset:1px}
+.nx{margin-top:12px;font-size:13px}
+.nxbar{height:14px;background:#000;border:2px solid #fff;margin-top:6px}
+.nxbar i{display:block;height:100%;background:var(--red)}
+.ms{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ms div{border:2px solid var(--line);padding:8px 4px;text-align:center;font-size:12px;background:var(--panel)}
+.ms div.got{border-color:var(--yel)}
+.ms b{display:block;font-family:var(--font-pixel);font-size:10px;color:var(--cyan);margin-bottom:4px}
+.ms .btn{font-size:12px;padding:4px 8px;margin-top:4px}
+@media (prefers-reduced-motion:reduce){.flame{animation:none}}
+/* 오늘의 현황판 */
+.sumc{display:flex;align-items:center;gap:12px}
+.sumc .big2{font-size:28px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.seg i{height:10px;border:2px solid #000;background:var(--line)}
+button.pk.dash{align-items:flex-start;text-align:left;padding:12px 10px;gap:2px;border-left-width:8px}
+button.pk.dash.done{background:#241d6b}
+.dash .ic{font-size:30px}
+.dash .st{font-size:14px;color:var(--yel);margin-top:4px}
+.dash .st.no{color:var(--sub);font-weight:500}
+.dash .st.run{color:var(--red)}
+.dash .rm{font-size:11px;color:var(--sub);font-weight:500}
+.timer{font-family:var(--font-pixel);font-size:22px;text-align:center;margin:10px 0;color:var(--yel)}
+.prev{width:100%;aspect-ratio:4/3;object-fit:cover;border:3px solid #000;margin:6px 0}
+.share{text-align:center;padding:22px 12px;border:4px solid var(--yel);background:linear-gradient(160deg,var(--panel),#5a1d4a);box-shadow:6px 6px 0 #000}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0}
+.dow{text-align:center;font-size:11px;color:var(--sub)}
+.day{position:relative;aspect-ratio:1;padding:0;border:2px solid transparent;background:transparent;color:var(--ink);cursor:pointer}
+.day svg{display:block;width:100%;height:100%}
+.day span{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:700}
+.day.today{border-color:var(--yel)}
+.day.sel{background:#2d2480}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--sub);margin-bottom:12px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:4px;border:2px solid #000}
+.rk2{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}
+.rk2 i{width:12px;height:12px;border:2px solid #000;flex:none}
+.rch{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rbig{margin-left:auto;font-family:var(--font-title);font-size:22px;color:var(--yel)}
+.share .big{font-family:var(--font-title);font-size:40px;color:var(--yel);text-shadow:3px 3px 0 #000}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;gap:4px;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));background:#000}
+nav button{flex:1;max-width:90px;font:inherit;font-size:12px;font-weight:700;padding:8px 2px;border:2px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+nav button[aria-current=page]{background:var(--yel);color:#000;border-color:var(--yel)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="appName"></h1>
+  <p class="sub px" style="font-size:9px">TODAY BATTLE</p>
+  <button class="stk" id="stk" data-go="my"></button>
+  <div id="app"></div>
+</main>
+<nav id="nav">
+  <button data-go="chars">캐릭터</button><button data-go="pick">오늘</button><button data-go="room">방</button><button data-go="proof">인증</button><button data-go="battle">배틀</button><button data-go="result">결과</button><button data-go="my">마이</button>
+</nav>
+<script>
+/* ===== 꾸미기 2: 앱 이름, 종목 이름·아이콘, 승점, 문구는 여기서 바꿔요 ===== */
+const CONFIG = {
+  appName: 'GODSAENG FIGHTER',
+  // 배틀 방식: points = 1위, 2위, 3위 … 순서의 승점 (끝 숫자는 그 아래 모두), winRank = 이 순위 안이면 '승'
+  modes: {
+    friend: {icon:'👥', en:'FRIENDS',   ko:'친구방',   desc:'방을 만들고 코드를 보내서 친구끼리 겨뤄요.', points:[5, 3, 2, 1], winRank:2, max:10},
+    duel:   {icon:'⚔️', en:'1 VS 1',    ko:'랜덤 1:1', desc:'같은 종목을 고른 모르는 누군가와 1대1로 붙어요.', points:[5, 1], winRank:1},
+    royale: {icon:'🔥', en:'BATTLE 11', ko:'10인 난투', desc:'같은 종목의 모르는 10명과 한 번에 붙어요.', points:[10, 7, 5, 3, 2, 1], winRank:3, size:10}
+  },
+  coinPerPoint: 10,                 // 승점 1점당 받는 게임 코인
+  // 연속 인증 보너스: days일 연속을 처음 달성하면 coin만큼 받아요 (하루에 한 종목이라도 인증하면 그날은 성공)
+  streak: [{days:3, coin:30}, {days:7, coin:100}, {days:14, coin:200}, {days:30, coin:500}, {days:50, coin:800}, {days:100, coin:1500}],
+  // 캐릭터 목록: price가 0이면 처음부터 쓸 수 있어요. look의 색을 바꾸면 모습이 달라져요 (hairStyle: spiky, short, ponytail, hood / acc: ears, horns, crown, cape, scarf, stripes).
+  characters: [
+    {id:'rookie', name:'ROOKIE', ko:'기본 도전자', price:0,
+     look:{skin:'#f0c19a', gi:'#f5f5f5', belt:'#2fa04e', glove:'#2fa04e', hair:'#1b1b1b', hairStyle:'spiky', band:'#2fa04e', shoe:'#333', acc:[]}},
+    {id:'ninja', name:'KAGE', ko:'그림자 닌자', price:50,
+     look:{skin:'#e0b088', gi:'#2a3358', belt:'#111', glove:'#555', hair:'#2a3358', hairStyle:'hood', band:null, shoe:'#111', acc:['scarf']}},
+    {id:'wolf', name:'WOLF', ko:'외로운 늑대', price:120,
+     look:{skin:'#d9a47a', gi:'#6b5a4a', belt:'#e07a2d', glove:'#e0a02d', hair:'#9aa3ad', hairStyle:'spiky', band:null, shoe:'#2b2018', acc:['ears']}},
+    {id:'tiger', name:'TIGER', ko:'호랑이', price:200,
+     look:{skin:'#e8b48a', gi:'#f08a1c', belt:'#111', glove:'#fdf2d0', hair:'#f08a1c', hairStyle:'spiky', band:'#111', shoe:'#111', acc:['stripes']}},
+    {id:'panda', name:'PANDA', ko:'쿵푸 판다', price:250,
+     look:{skin:'#f4f4f4', gi:'#262626', belt:'#f4f4f4', glove:'#262626', hair:'#262626', hairStyle:'short', band:null, shoe:'#262626', acc:['ears']}},
+    {id:'dragon', name:'DRAGON', ko:'용', price:300,
+     look:{skin:'#c98f6b', gi:'#1f9e7a', belt:'#f2c14e', glove:'#f2c14e', hair:'#111', hairStyle:'ponytail', band:null, shoe:'#143d33', acc:['horns']}},
+    {id:'phoenix', name:'PHOENIX', ko:'불사조', price:400,
+     look:{skin:'#e8b48a', gi:'#d6361f', belt:'#ffd23f', glove:'#ffd23f', hair:'#ff9a1f', hairStyle:'ponytail', band:'#ffd23f', shoe:'#5a1208', acc:['cape']}},
+    {id:'king', name:'KING', ko:'갓생 왕', price:500,
+     look:{skin:'#f0c19a', gi:'#6a2fa0', belt:'#f2c14e', glove:'#f2c14e', hair:'#7a4a1e', hairStyle:'short', band:null, shoe:'#2a1240', acc:['crown','cape']}}
+  ],
+  cap: {book: 60, iron: 90, study: 240},        // 체력바가 가득 차는 기준 (책벌레는 쪽, 나머지는 분)
+  types: {
+    dawn: {icon:'🌅', color:'#ffd23f', en:'DAWN',     ko:'새벽러', unit:'기상 시각', close:'전날 밤 23:00', settle:'오전 10:00',
+           how:'일어나면 기상 인증 버튼을 눌러요. 실제 서비스에선 서버가 시각을 기록하고, 간단한 미션을 해야 인정돼요.'},
+    book: {icon:'📚', color:'#38d6ff', en:'BOOKWORM', ko:'책벌레', unit:'오늘 읽은 쪽수', close:'당일 12:00',    settle:'자정',
+           how:'읽을 책 제목과 총 페이지 수를 한 번 적어 두고, 매일 들어와서 몇 쪽까지 읽었는지 인증해요. 그날 읽은 쪽수로 순위를 겨뤄요.'},
+    iron: {icon:'💪', color:'#ff5a4a', en:'IRON',     ko:'헬창',   unit:'운동 시간', close:'당일 12:00',    settle:'자정',
+           how:'운동할 때 타이머를 켜고 끄면 오늘 운동한 시간이 계속 쌓여요. 오늘의 운동 인증 사진을 찍어야 기록이 인정돼요.'},
+    study:{icon:'✏️', color:'#6bff8a', en:'STUDY',    ko:'열공러', unit:'공부 시간', close:'당일 12:00',    settle:'자정',
+           how:'카메라를 켜고 라이브로 공부해요. 카메라가 켜져 있는 동안만 시간이 올라가요. (연습용이라 영상은 이 기기에서만 보이고 저장·전송되지 않아요)'}
+  },
+  // 연습용 가짜 상대: 이름 목록과 기록 범위 (기상은 0시 기준 분, 책벌레는 쪽, 나머지는 분)
+  friendNames: ['민지', '준호', '서아', '지우', '하준', '예린', '도윤', '수아', '시우'],
+  strangerNames: ['새벽늑대', '독서왕', '철인민수', '공부요정', '아침해', '근육곰', '책갈피', '열공중', '밤샘금지', '갓생러', '하루한장', '스쿼트킹', '집중모드', '오운완', '작심삼일탈출'],
+  range: {dawn:[330, 480], book:[5, 60], iron:[20, 90], study:[30, 240]}
+};
+
+/* ===== 아래부터는 동작 코드예요. 처음엔 건드리지 않아도 돼요 ===== */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+const hm = m => pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+const fmtMin = m => m >= 60 ? Math.floor(m / 60) + '시간' + (m % 60 ? ' ' + m % 60 + '분' : '') : m + '분';
+const HKEY = 'gsf-history-v1';   // 지금까지의 기록을 이 브라우저에 저장하는 이름
+function loadHist() { try { return JSON.parse(localStorage.getItem(HKEY)) || {}; } catch (e) { return {}; } }
+const BKEY = 'gsf-book-v1';      // 읽고 있는 책과 오늘 읽은 쪽수를 이 브라우저에 저장하는 이름
+function loadBook() { try { return JSON.parse(localStorage.getItem(BKEY)) || {book: null, day: {date: '', pages: 0}}; } catch (e) { return {book: null, day: {date: '', pages: 0}}; } }
+function saveBook() { try { localStorage.setItem(BKEY, JSON.stringify(S.bk)); } catch (e) {} }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const fmtVal = (k, v) => k === 'dawn' ? hm(v) : k === 'book' ? v + '쪽' : fmtMin(v);
+const bookToday = () => S.bk.day.date === todayKey() ? S.bk.day.pages : 0;
+function readTo(p) {   // '지금 몇 쪽까지 읽었는지'를 받아서, 늘어난 만큼 오늘 읽은 쪽수에 더해요
+  const b = S.bk.book;
+  p = Math.max(0, Math.min(b.total, Math.round(p)));
+  if (S.bk.day.date !== todayKey()) S.bk.day = {date: todayKey(), pages: 0};
+  S.bk.day.pages = Math.max(0, S.bk.day.pages + p - b.page);
+  b.page = p;
+  saveBook();
+}
+const ON = {ready: false, uid: null, sb: null, nick: '', err: ''};   // 서버 연결 상태 (online.js가 채워요)
+const S = {type:null, scr:'pick', v:{dawn:null, book:0, iron:0, study:0}, bk:loadBook(), ironStart:0, photo:{}, coins:0, own:['rookie'], char:'rookie', claimed:{}, msg:'', studyStart:0, cam:null, hist:loadHist(), rooms:{}, matching:false, charOf:{}, sClaimed:[], calY:new Date().getFullYear(), calM:new Date().getMonth(), selDay:''};
+
+const ironSecs = () => Math.floor(S.v.iron * 60 + (S.ironStart ? (Date.now() - S.ironStart) / 1000 : 0));   // 오늘 쌓인 운동 시간 (초)
+const ironMins = () => Math.floor(ironSecs() / 60);
+const clock = s => pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+function myVal() {
+  if (S.type === 'dawn') return S.v.dawn;
+  if (S.type === 'book') { const n = bookToday(); return n > 0 ? n : null; }
+  if (S.type === 'study') {
+    const sm = Math.floor(S.v.study + (S.studyStart ? (Date.now() - S.studyStart) / 60000 : 0));
+    return sm >= 1 ? sm : null;
+  }
+  const m = ironMins();
+  return m > 0 && S.photo.iron ? m : null;   // 사진을 찍어야 인정돼요
+}
+const show = v => v == null ? '기록 전' : fmtVal(S.type, v);
+function power(v) {
+  if (v == null) return 0;
+  return S.type === 'dawn' ? Math.max(0, Math.min(100, Math.round((480 - v) / 240 * 100))) : Math.min(100, Math.round(v / CONFIG.cap[S.type] * 100));
+}
+/* ===== 배틀 방: 방식별로 상대를 모아요 (지금은 연습용 가짜 상대) ===== */
+const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const shuffle = a => [...a].sort(() => Math.random() - 0.5);
+const newCode = () => 'GS-' + Array.from({length: 4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[rint(0, 31)]).join('');
+const mockVal = (k, mayMiss) => mayMiss && Math.random() < 0.15 ? null : rint(CONFIG.range[k][0], CONFIG.range[k][1]);
+function makeRoom(k, mode, code) {
+  const names = mode === 'friend' ? (code ? shuffle(CONFIG.friendNames).slice(0, rint(2, 3)) : [])
+    : shuffle(CONFIG.strangerNames).slice(0, mode === 'duel' ? 1 : CONFIG.modes.royale.size);
+  S.rooms[k] = {mode, code: mode === 'friend' ? (code || newCode()) : '', members: names.map(n => [n, mockVal(k, mode === 'royale')])};
+}
+const roomMode = () => CONFIG.modes[(S.rooms[S.type] || {mode: 'friend'}).mode];
+function board() {
+  const asc = S.type === 'dawn', r = S.rooms[S.type], M = roomMode();
+  const L = (r ? r.members : []).map(([n, v]) => ({n, v}));
+  L.push({n:'나', v:myVal(), me:true});
+  L.sort((a, b) => a.v == null ? 1 : b.v == null ? -1 : asc ? a.v - b.v : b.v - a.v);
+  L.forEach((x, i) => { x.rank = i + 1; x.pts = x.v == null || L.length < 2 ? 0 : M.points[Math.min(i, M.points.length - 1)]; });
+  return L;
+}
+const table = (L, pts) => L.map(x =>
+  '<div class="rk ' + (x.me ? 'me' : '') + '"><b>' + x.rank + '위</b><span>' + (x.cpu ? '🤖 ' : '') + x.n + '</span><span>' + show(x.v) + '</span><span class="pt">' + (pts && !x.cpu ? '+' + x.pts : '') + '</span></div>').join('');
+
+/* ===== 캐릭터 그림 (도트 픽셀): 위 look 값으로 그려져요. 'R(x, y, 가로, 세로, 색)'이 칸을 칠하는 명령이에요 ===== */
+const PW = 24, PH = 30;   // 도트 캔버스 크기 (가로 24칸, 세로 30칸)
+const dk = (c, f) => '#' + [1, 3, 5].map(i => Math.round(parseInt(c.substr(i, 2), 16) * f).toString(16).padStart(2, '0')).join('');
+function fighter(o) {
+  const G = Array.from({length: PH}, () => Array(PW).fill(null));
+  const R = (x, y, w, h, c) => { y += 2; for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (j >= 0 && j < PH && i >= 0 && i < PW) G[j][i] = c; };
+  const K = '#111', acc = o.acc || [], hs = o.hairStyle, pants = dk(o.gi, 0.8), GOLD = '#f2c14e', PINK = '#ff8fa3', RED = '#d33a3a';
+  const head = c => { R(6, 3, 12, 1, c); R(5, 4, 14, 1, c); R(4, 5, 16, 8, c); R(5, 13, 14, 1, c); R(6, 14, 12, 1, c); };
+  // 1) 뒤에 깔리는 것: 망토, 스카프 꼬리
+  if (acc.includes('cape')) R(5, 15, 14, 8, '#8c1d2c');
+  if (acc.includes('scarf')) R(1, 15, 7, 2, RED);
+  // 2) 뒤쪽 팔 (낮게 든 주먹)
+  R(6, 17, 2, 2, o.gi); R(2, 17, 4, 4, o.glove); R(3, 18, 1, 1, '#fff');
+  // 3) 다리, 신발
+  R(8, 20, 8, 1, pants); R(8, 21, 3, 3, pants); R(13, 21, 3, 3, pants);
+  R(7, 24, 4, 2, o.shoe); R(13, 24, 4, 2, o.shoe);
+  // 4) 작은 몸통, 띠
+  R(8, 15, 8, 5, o.gi); R(8, 18, 8, 2, o.belt); R(11, 19, 2, 3, o.belt);
+  if (acc.includes('stripes')) { R(9, 16, 1, 2, K); R(14, 16, 1, 2, K); R(11, 16, 2, 1, K); }
+  // 5) 앞쪽 팔 (높이 든 큰 주먹)
+  R(16, 16, 2, 2, o.gi); R(18, 14, 4, 4, o.glove); R(19, 15, 1, 1, '#fff');
+  // 6) 큰 머리
+  head(o.skin);
+  if (hs === 'hood') { head(o.hair); R(6, 7, 12, 6, o.skin); }
+  else {
+    R(6, 3, 12, 1, o.hair); R(5, 4, 14, 1, o.hair); R(4, 5, 16, 2, o.hair); R(4, 7, 2, 3, o.hair); R(18, 7, 2, 3, o.hair);
+    if (hs === 'spiky') { R(6, 2, 3, 1, o.hair); R(7, 1, 1, 1, o.hair); R(10, 2, 4, 1, o.hair); R(11, 1, 2, 1, o.hair); R(15, 2, 3, 1, o.hair); R(16, 1, 1, 1, o.hair); }
+    if (hs === 'ponytail') { R(2, 6, 3, 2, o.hair); R(1, 8, 3, 4, o.hair); }
+  }
+  if (o.band) { R(4, 7, 16, 2, o.band); R(1, 8, 3, 1, o.band); R(2, 9, 2, 1, o.band); }
+  // 7) 머리 장식
+  if (acc.includes('ears')) { R(5, 2, 3, 2, o.hair); R(6, 1, 1, 1, o.hair); R(16, 2, 3, 2, o.hair); R(17, 1, 1, 1, o.hair); }
+  if (acc.includes('horns')) { R(6, 0, 2, 3, o.belt); R(16, 0, 2, 3, o.belt); }
+  if (acc.includes('crown')) { R(7, 1, 10, 2, GOLD); R(7, 0, 1, 1, GOLD); R(11, 0, 2, 1, GOLD); R(16, 0, 1, 1, GOLD); R(11, 2, 2, 1, RED); }
+  if (acc.includes('scarf')) R(7, 14, 10, 2, RED);
+  // 8) 얼굴: 반짝이는 큰 눈, 볼터치, 작은 입
+  R(7, 9, 2, 3, K); R(15, 9, 2, 3, K); R(7, 9, 1, 1, '#fff'); R(15, 9, 1, 1, '#fff');
+  R(6, 12, 2, 1, PINK); R(16, 12, 2, 1, PINK); R(11, 12, 2, 1, K);
+  // 9) 검은 외곽선을 자동으로 둘러요
+  const E = G.map(r => r.slice());
+  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) if (!G[y][x]) {
+    if ((y > 0 && G[y - 1][x]) || (y < PH - 1 && G[y + 1][x]) || (x > 0 && G[y][x - 1]) || (x < PW - 1 && G[y][x + 1])) E[y][x] = K;
+  }
+  let out = '';
+  for (let y = 0; y < PH; y++) {
+    let x = 0;
+    while (x < PW) {
+      const c = E[y][x];
+      if (!c) { x++; continue; }
+      let w = 1;
+      while (x + w < PW && E[y][x + w] === c) w++;
+      out += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="1" fill="' + c + '"/>';
+      x += w;
+    }
+  }
+  return out;
+}
+const art = (c, h) => '<svg class="art" viewBox="0 0 ' + PW + ' ' + PH + '" height="' + h + '" width="' + Math.round(h * PW / PH) + '" shape-rendering="crispEdges" role="img" aria-label="' + c.name + '">' + fighter(c.look) + '</svg>';
+const hsh = str => [...str].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 0);
+const rivalChar = n => CONFIG.characters.find(c => c.id === S.charOf[n]) || CONFIG.characters[hsh(n) % CONFIG.characters.length];
+const myChar = () => CONFIG.characters.find(x => x.id === S.char);
+const myArt = h => art(myChar(), h);
+function claimHtml(me) {
+  if (S.claimed[S.type]) return '<p class="sub" style="text-align:center">오늘 보상을 받았어요 ✔</p>';
+  if (me.v == null) return '<p class="sub" style="text-align:center">인증을 마치면 코인을 받을 수 있어요</p>';
+  return '<p style="text-align:center"><button class="btn" data-act="claim" data-k="' + S.type + '">🪙 +' + me.pts * CONFIG.coinPerPoint + ' 코인 받기</button></p>';
+}
+
+/* ===== 마이페이지: 기록 저장, 전적, 달력 ===== */
+const dKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const todayKey = () => dKey(new Date());
+
+/* ===== 연속 인증 스트릭: 하루에 한 종목이라도 인증하면 그날은 성공 ===== */
+const SKEY = 'gsf-streak-v1';   // 받은 연속 보너스를 이 브라우저에 저장하는 이름
+const loadClaimed = () => { try { return JSON.parse(localStorage.getItem(SKEY)) || []; } catch (e) { return []; } };
+const saveClaimed = () => { try { localStorage.setItem(SKEY, JSON.stringify(S.sClaimed)); } catch (e) {} };
+S.sClaimed = loadClaimed();
+
+/* ===== 오늘 하루 기록 저장: 새로고침해도 오늘 기록이 남아요 (날짜가 바뀌면 새로 시작) ===== */
+const DKEY = 'gsf-today-v1', PKEY = 'gsf-profile-v1';
+function saveDay() {
+  const study = S.v.study + (S.studyStart ? (Date.now() - S.studyStart) / 60000 : 0);   // 라이브 중이면 지금까지 시간을 넣어 둬요
+  try {
+    localStorage.setItem(DKEY, JSON.stringify({date: S.day, v: Object.assign({}, S.v, {study}), ironStart: S.ironStart, photo: S.photo, rooms: S.rooms, claimed: S.claimed, type: S.type}));
+    localStorage.setItem(PKEY, JSON.stringify({coins: S.coins, own: S.own, char: S.char}));
+  } catch (e) {}
+}
+function freshDay() {
+  S.day = todayKey(); S.v = {dawn: null, book: 0, iron: 0, study: 0}; S.ironStart = 0; S.photo = {}; S.rooms = {}; S.claimed = {};
+}
+function loadDay() {
+  freshDay();
+  try {
+    const p = JSON.parse(localStorage.getItem(PKEY));
+    if (p) { S.coins = p.coins || 0; S.own = p.own || ['rookie']; S.char = S.own.includes(p.char) ? p.char : 'rookie'; }
+    const d = JSON.parse(localStorage.getItem(DKEY));
+    if (d && d.date === S.day) Object.assign(S, {v: d.v, ironStart: d.ironStart || 0, photo: d.photo || {}, rooms: d.rooms || {}, claimed: d.claimed || {}, type: d.type || null});
+  } catch (e) {}
+}
+function photoData(file, done) {   // 사진을 작게 줄여서 저장해요
+  const url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    const sc = Math.min(1, 560 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+    c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    done(c.toDataURL('image/jpeg', 0.75));
+  };
+  img.onerror = () => done(url);
+  img.src = url;
+}
+function dayStatus(k) {
+  const cur = S.type; S.type = k;
+  const r = S.rooms[k], L = board(), me = L.find(x => x.me);
+  const run = (k === 'iron' && S.ironStart) || (k === 'study' && S.studyStart);
+  const out = {v: me.v, room: r, rank: me.rank, n: L.length, pts: r && me.v != null ? me.pts : 0, run: !!run, pend: k === 'iron' && ironMins() > 0 && !S.photo.iron};
+  S.type = cur;
+  return out;
+}
+const hasDay = k => !!S.hist[k] && Object.keys(S.hist[k]).length > 0;
+function streakInfo() {
+  const d = new Date(), today = hasDay(dKey(d));
+  if (!today) d.setDate(d.getDate() - 1);   // 오늘 아직 안 했으면 어제까지의 연속 기록을 보여줘요
+  let n = 0;
+  while (hasDay(dKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  let best = 0, cur = 0, prev = null;
+  Object.keys(S.hist).filter(hasDay).sort().forEach(k => {
+    const t = new Date(k + 'T00:00').getTime();
+    cur = prev != null && Math.round((t - prev) / 864e5) === 1 ? cur + 1 : 1;
+    best = Math.max(best, cur); prev = t;
+  });
+  const gift = CONFIG.streak.find(m => n >= m.days && !S.sClaimed.includes(m.days));
+  const next = CONFIG.streak.find(m => m.days > n);
+  return {n, today, best, gift, next};
+}
+function streakChip() {
+  const el = $('#stk'), st = streakInfo();
+  el.className = 'stk ' + (st.gift ? 'gift' : st.today ? 'ok' : st.n ? 'warn' : '');
+  el.innerHTML = st.gift ? '🎁 <b>' + st.gift.days + '</b>일 연속 달성! 보너스 받기'
+    : '<span class="flame">🔥</span><b>' + st.n + '</b>일 연속 · ' + (st.today ? '오늘 인증 완료' : st.n ? '오늘 인증하면 ' + (st.n + 1) + '일!' : '오늘 인증해서 시작해요');
+}
+function streakCard() {
+  const st = streakInfo(), days = '일월화수목금토';
+  let wk = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const on = hasDay(dKey(d));
+    wk += '<div>' + (i === 0 ? '오늘' : days[d.getDay()]) + '<i class="' + (on ? 'on' : '') + (i === 0 ? ' td' : '') + '">' + (on ? '✔' : '') + '</i></div>';
+  }
+  const nx = st.next ? '<div class="nx">다음 보너스: <b>' + st.next.days + '일 연속</b> 🪙 ' + st.next.coin + ' · ' + (st.next.days - st.n) + '일 남았어요' +
+    '<div class="nxbar"><i style="width:' + Math.round(st.n / st.next.days * 100) + '%"></i></div></div>' : '<div class="nx">모든 연속 보너스를 달성했어요! 👑</div>';
+  return '<h2>연속 인증</h2><div class="card stkc"><div class="rch"><span class="flame">🔥</span><div><div class="big2">' + st.n + '일 연속</div>' +
+    '<div class="sub" style="margin:2px 0 0">최고 기록 ' + st.best + '일 · ' + (st.today ? '오늘 인증 완료 ✔' : st.n ? '오늘 인증 안 하면 0일로 돌아가요!' : '오늘 인증해서 시작해요') + '</div></div></div>' +
+    '<div class="wk">' + wk + '</div>' + nx + (S.msg ? '<p class="sub"><b style="color:var(--cyan)">' + S.msg + '</b></p>' : '') + '</div>' +
+    '<div class="ms">' + CONFIG.streak.map(m => {
+      const got = S.sClaimed.includes(m.days), can = !got && st.n >= m.days;
+      return '<div class="' + (got ? 'got' : '') + '"><b>' + m.days + '일</b>🪙 ' + m.coin + '<br>' +
+        (got ? '받음 ✔' : can ? '<button class="btn" data-act="sclaim" data-d="' + m.days + '">받기</button>' : '🔒') + '</div>';
+    }).join('') + '</div><p class="sub">하루에 한 종목이라도 인증하면 그날은 성공이에요. 보너스는 처음 달성할 때 한 번 받아요.</p>';
+}
+function saveHist() { try { localStorage.setItem(HKEY, JSON.stringify(S.hist)); } catch (e) {} }
+function saveToday() {
+  const cur = S.type, key = todayKey();
+  Object.keys(CONFIG.types).forEach(k => {
+    S.type = k;
+    const L = board(), me = L.find(x => x.me);
+    if (me.v == null) { if (S.hist[key]) delete S.hist[key][k]; return; }
+    (S.hist[key] = S.hist[key] || {})[k] = S.rooms[k] ? {v: me.v, rank: me.rank, win: me.rank <= roomMode().winRank, mode: S.rooms[k].mode} : {v: me.v, rank: null};
+  });
+  S.type = cur;
+  saveHist();
+  if (ON.push) ON.push();   // 온라인이면 오늘 기록을 서버에 올려요
+}
+function wipeLocal() {   // 이 기기에 저장된 갓생파이터 기록을 모두 지우고 처음 화면으로
+  try { Object.keys(localStorage).filter(k => k.startsWith('gsf-') || k.startsWith('sb-')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  location.reload();
+}
+function seedHist() {   // 연습용: 지난 45일의 가짜 기록
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const range = {dawn:[330, 470], book:[5, 80], iron:[20, 90], study:[30, 240]};
+  for (let i = 1; i <= 45; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), rec = {};
+    Object.keys(CONFIG.types).forEach(k => {
+      if (Math.random() < 0.55) { const r = range[k] || [20, 90], hr = rnd(1, 4); rec[k] = {v: rnd(r[0], r[1]), rank: hr, win: hr <= 2}; }
+    });
+    S.hist[key] = rec;
+  }
+  saveHist();
+}
+function ring(rec) {   // 하루를 종목 수만큼 나눈 링: 인증한 종목은 그 종목 색으로 켜져요
+  const keys = Object.keys(CONFIG.types), C = 2 * Math.PI * 14, seg = C / keys.length;
+  return '<svg viewBox="0 0 36 36" aria-hidden="true">' + keys.map((k, i) =>
+    '<circle cx="18" cy="18" r="14" fill="none" style="stroke:' + (rec[k] ? CONFIG.types[k].color : 'var(--line)') + '" stroke-width="5" stroke-dasharray="' +
+    (seg - 3).toFixed(2) + ' ' + (C - seg + 3).toFixed(2) + '" stroke-dashoffset="' + (-i * seg).toFixed(2) + '" transform="rotate(-90 18 18)"/>').join('') + '</svg>';
+}
+function calendar() {
+  const y = S.calY, m = S.calM, first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  let cells = '일월화수목금토'.split('').map(d => '<div class="dow">' + d + '</div>').join('');
+  for (let i = 0; i < first; i++) cells += '<div></div>';
+  for (let d = 1; d <= days; d++) {
+    const key = y + '-' + pad(m + 1) + '-' + pad(d);
+    cells += '<button class="day' + (key === todayKey() ? ' today' : '') + (key === (S.selDay || todayKey()) ? ' sel' : '') + '" data-day="' + key + '" aria-label="' + (m + 1) + '월 ' + d + '일">' +
+      ring(S.hist[key] || {}) + '<span>' + d + '</span></button>';
+  }
+  return '<div class="cal">' + cells + '</div>';
+}
+function statCard(k) {
+  const t = CONFIG.types[k];
+  let n = 0, w = 0, l = 0, sum = 0;
+  Object.values(S.hist).forEach(r => { const x = r[k]; if (!x) return; n++; sum += x.v; if (x.rank) x.win ? w++ : l++; });
+  const main = k === 'dawn' ? (n ? '인증 ' + n + '일 · 평균 기상 ' + hm(Math.round(sum / n)) : '인증 기록 없음') : '누적 ' + fmtVal(k, sum);
+  return '<div class="card" style="border-left:8px solid ' + t.color + '"><div class="rch"><span style="font-size:26px">' + t.icon + '</span><b>' + t.ko + '</b><span class="rbig">' + w + '승 ' + l + '패</span></div>' +
+    '<div class="sub" style="margin:0">' + main + (n ? ' · 승률 ' + Math.round(w / Math.max(1, w + l) * 100) + '%' : '') + '</div></div>';
+}
+function dayDetail(key) {
+  const r = S.hist[key] || {};
+  return '<div class="card"><b>' + key + '</b>' + Object.keys(CONFIG.types).map(k => {
+    const x = r[k], t = CONFIG.types[k];
+    return '<div class="rk2"><i style="background:' + t.color + '"></i>' + t.ko + ' · ' +
+      (x ? fmtVal(k, x.v) + (x.rank ? ' · ' + (x.win ? '승' : '패') + ' (' + x.rank + '위)' : ' · 배틀 없이 인증') : '기록 없음') + '</div>';
+  }).join('') + '</div>';
+}
+
+/* ===== 배틀 애니메이션: 실시간으로 주먹을 주고받아요 ===== */
+const FIGHT = {
+  every: 1300,                          // 몇 ms마다 한 번 공격할지
+  superChance: 0.15,                    // 필살기(에너지 탄)가 나올 확률
+  words: ['POW!', 'BAM!', 'HIT!', 'WHAM!'],
+  superWord: 'SUPER!'
+};
+function bInfo() {
+  const L = board(), i = L.findIndex(x => x.me), lead = i === 0, tg = lead ? L[1] : L[i - 1], me = L[i];
+  const gap = me.v == null || tg.v == null ? null : Math.abs(me.v - tg.v), u = S.type === 'book' ? '쪽' : '분';
+  const msg = me.v == null ? '인증하면 반격할 수 있어요! 지금은 맞기만 해요' : lead ? '1위! ' + tg.n + '이(가) 추격 중 (차이 ' + gap + u + ')' : tg.n + '와(과) ' + (gap == null ? '' : gap + u + ' 차이') + ' · 따라잡아요!';
+  return {L, me, tg, msg: (L.length > 2 ? L.length + '명 중 ' + me.rank + '위 · ' : '') + msg};
+}
+const replay = (el, c) => { el.classList.remove(c); void el.offsetWidth; el.classList.add(c); };
+function attack(mine, sp) {
+  const a = $(mine ? '#fMe' : '#fRv'), d = $(mine ? '#fRv' : '#fMe'), pow = $('#pow'), ball = $('#ball');
+  a.classList.remove('atk', 'hit', 'cast');
+  replay(a, sp ? 'cast' : 'atk');
+  if (sp) { ball.className = 'ball'; void ball.offsetWidth; ball.className = 'ball ' + (mine ? 'go-r' : 'go-l'); }
+  setTimeout(() => {
+    if (!d.isConnected) return;
+    d.classList.remove('atk', 'hit', 'cast');
+    replay(d, 'hit');
+    replay($('#ring'), 'shake');
+    replay($(mine ? '#hpbRv' : '#hpbMe'), 'flash');
+    pow.textContent = sp ? FIGHT.superWord : FIGHT.words[Math.floor(Math.random() * FIGHT.words.length)];
+    pow.className = 'pow ' + (mine ? 'r' : 'l') + (sp ? ' sp' : '');
+    void pow.offsetWidth; pow.classList.add('on');
+  }, sp ? 430 : 180);
+}
+document.addEventListener('animationend', e => {
+  const f = e.target.classList.contains('bd') && e.target.closest('.fx');
+  if (f && e.animationName !== 'idle') f.classList.remove('atk', 'hit', 'cast');
+});
+setInterval(() => {
+  if (S.scr !== 'battle' || !$('#fMe') || !S.type) return;
+  const {me, tg, msg} = bInfo();
+  if ($('#ring').dataset.tg !== tg.n) return go('battle');   // 순위가 바뀌어 상대가 바뀌면 다시 그려요
+  $('#hpMe').style.width = (100 - power(tg.v)) + '%';
+  $('#hpRv').style.width = (100 - power(me.v)) + '%';
+  $('#bmsg').textContent = msg;
+  // 기록이 앞설수록 내가 공격할 확률이 높아져요. 인증 전엔 상대만 공격해요.
+  const pMe = me.v == null ? 0 : Math.min(0.85, Math.max(0.15, 0.5 + (power(me.v) - power(tg.v)) / 200));
+  attack(Math.random() < pMe, Math.random() < FIGHT.superChance);
+}, FIGHT.every);
+
+const SCREENS = {
+  my() {
+    return '<h2>마이페이지</h2><div class="card" style="display:flex;align-items:center;gap:14px">' + myArt(70) +
+      '<div><b>' + (ON.nick ? esc(ON.nick) + ' · ' : '') + myChar().name + '</b><div class="sub" style="margin:2px 0 0">🪙 ' + S.coins + ' 코인' + (ON.ready ? ' · 🟢 온라인' : ' · ⚪ 연습 모드') + '</div>' +
+      (ON.ready ? '<button class="btn alt" data-go="hello" style="margin-top:8px;font-size:12px;padding:5px 10px">닉네임 바꾸기</button>' : '') + '</div></div>' +
+      streakCard() + '<h2>종목별 전적</h2>' + Object.keys(CONFIG.types).map(statCard).join('') +
+      '<p class="sub">승패 기준: ' + Object.values(CONFIG.modes).map(m => m.ko + ' ' + m.winRank + '위 안').join(' · ') + '이면 승이에요.</p>' +
+      '<h2>' + S.calY + '년 ' + (S.calM + 1) + '월</h2>' +
+      '<div style="display:flex;gap:8px"><button class="btn alt" data-act="cal" data-d="-1" aria-label="이전 달">◀</button><button class="btn alt" data-act="cal" data-d="1" aria-label="다음 달">▶</button></div>' +
+      calendar() +
+      '<div class="legend">' + Object.keys(CONFIG.types).map(k => '<span><i style="background:' + CONFIG.types[k].color + '"></i>' + CONFIG.types[k].ko + '</span>').join('') + '</div>' +
+      dayDetail(S.selDay || todayKey()) +
+      '<p class="sub">연습용</p><button class="btn alt" data-act="seed">샘플 기록 채우기</button> <button class="btn alt" data-act="wipe">기록 지우기</button>' +
+      '<h2>계정</h2><div class="card">' + (S.delAsk
+        ? '<p style="margin-top:0"><b>정말 계정을 삭제할까요?</b></p><p class="sub">닉네임, 배틀 방, 모든 기록, 코인과 캐릭터가 지워지고 되돌릴 수 없어요.</p>' +
+          '<button class="btn" data-act="delacc" style="background:var(--red);color:#fff">삭제하기</button> <button class="btn alt" data-act="delno">취소</button>'
+        : '<p class="sub" style="margin-top:0">계정과 모든 기록을 지우고 처음부터 시작해요.</p><button class="btn alt" data-act="delask">계정 삭제</button>') +
+      '</div><p class="sub"><a href="privacy.html" style="color:var(--cyan)">개인정보 처리방침</a></p>';
+  },
+  chars() {
+    const cur = CONFIG.characters.find(x => x.id === S.char);
+    return '<h2>캐릭터 선택</h2><div class="card" style="text-align:center">' + art(cur, 150) +
+      '<div class="px" style="font-size:10px;margin:10px 0 4px">' + cur.name + '</div><div class="sub">' + cur.ko + '</div></div>' +
+      '<p class="sub">🪙 내 코인 <b style="color:var(--yel)">' + S.coins + '</b> · 승점 1점 = ' + CONFIG.coinPerPoint + '코인' + (S.msg ? ' · <b style="color:var(--cyan)">' + S.msg + '</b>' : '') + '</p>' +
+      '<div class="grid4">' + CONFIG.characters.map(c => {
+        const own = S.own.includes(c.id);
+        return '<button class="pk' + (own ? '' : ' lock') + '" data-char="' + c.id + '" aria-pressed="' + (S.char === c.id) + '"><span class="ic">' + art(c, 64) + '</span><span class="px">' + c.name + '</span>' +
+          (S.char === c.id ? '사용 중' : own ? '보유' : '🪙 ' + c.price) + '</button>';
+      }).join('') + '</div>' +
+      '<p style="margin-top:14px"><button class="btn alt" data-act="coindemo">+50코인 (연습용)</button></p>';
+  },
+  pick() {
+    const keys = Object.keys(CONFIG.types), st = {};
+    keys.forEach(k => st[k] = dayStatus(k));
+    const done = keys.filter(k => st[k].v != null).length, pts = keys.reduce((a, k) => a + st[k].pts, 0);
+    return '<h2>오늘의 갓생 현황</h2><div class="card"><div class="sumc"><div class="big2">' + done + ' / ' + keys.length + '</div><div>종목 인증 완료<div class="sub" style="margin:0">오늘 승점 +' + pts + ' · 🪙 ' + S.coins + '</div></div></div>' +
+      '<div class="seg">' + keys.map(k => '<i style="background:' + (st[k].v != null ? CONFIG.types[k].color : 'var(--line)') + '"></i>').join('') + '</div></div>' +
+      '<div class="grid2">' + keys.map(k => {
+        const t = CONFIG.types[k], x = st[k], M = x.room && CONFIG.modes[x.room.mode];
+        const line = x.v != null ? '✔ ' + fmtVal(k, x.v) : x.run ? '⏱ 진행 중' : x.pend ? '📸 사진 필요' : '아직 안 함';
+        return '<button class="pk dash' + (x.v != null ? ' done' : '') + '" data-type="' + k + '" style="border-left-color:' + t.color + '"><span class="ic">' + t.icon + '</span><b>' + t.ko + '</b>' +
+          '<span class="st' + (x.v != null ? '' : x.run || x.pend ? ' run' : ' no') + '">' + line + '</span>' +
+          '<span class="rm">' + (M ? M.icon + ' ' + M.ko + (x.n < 2 ? ' · 상대 기다리는 중' : x.v != null ? ' · ' + x.n + '명 중 ' + x.rank + '위' : '') : '배틀 방 없음') + '</span></button>';
+      }).join('') + '</div><p class="sub">하루에 여러 종목을 해도 돼요. 종목을 누르면 들어가고, 순위와 코인은 종목마다 따로 받아요. 오늘 기록은 자정까지 이 기기에 남아요.</p>';
+  },
+  mode() {
+    const t = CONFIG.types[S.type], M = CONFIG.modes, note = S.msg ? '<p class="sub"><b style="color:var(--cyan)">' + S.msg + '</b></p>' : '';
+    if (S.matching) return '<h2>' + t.icon + ' ' + M.duel.icon + ' 랜덤 1:1</h2><div class="card match"><div class="px" style="font-size:11px;color:var(--yel)">SEARCHING...</div>' +
+      '<div class="mrow">' + myArt(80) + '<span class="vs">VS</span><span class="q">?</span></div><p class="sub">' + t.ko + ' 종목을 고른 상대를 찾고 있어요</p></div>';
+    const head = (m, en) => '<div class="rch"><span class="mic">' + m.icon + '</span><div><div class="px mt">' + m.en + '</div><b>' + m.ko + '</b></div></div><p class="sub">' + m.desc + '</p>';
+    return '<h2>' + t.icon + ' ' + t.ko + ' · 배틀 방식</h2>' +
+      '<p class="sub">' + (ON.ready && ON.nick ? '🟢 온라인 · ' + esc(ON.nick) + ' · 진짜 사람과 겨뤄요' : '⚪ 연습 모드 · 서버에 연결되지 않아 가짜 상대와 겨뤄요' + (ON.err ? ' (' + esc(ON.err) + ')' : '')) + '</p>' +
+      '<div class="card">' + head(M.friend) + '<button class="btn" data-act="mfriend">방 만들기</button>' +
+        '<label style="margin-top:14px">친구에게 받은 코드로 입장</label><div class="row"><input type="text" id="code" placeholder="예: GS-7K2P" autocapitalize="characters" autocomplete="off"><button class="btn" data-act="mjoin">입장</button></div>' + note + '</div>' +
+      '<div class="card">' + head(M.duel) + '<button class="btn" data-act="mduel">상대 찾기</button></div>' +
+      '<div class="card">' + head(M.royale) + '<button class="btn" data-act="mroyale">난투 입장</button></div>';
+  },
+  room() {
+    const t = CONFIG.types[S.type], r = S.rooms[S.type], M = CONFIG.modes[r.mode], L = board();
+    const note = S.msg ? '<p class="sub"><b style="color:var(--cyan)">' + S.msg + '</b></p>' : '';
+    let top = '', list;
+    if (r.mode === 'friend') top = '<div class="card code"><div class="sub" style="margin:0">방 코드</div><div class="cd px">' + r.code + '</div>' +
+      '<button class="btn" data-act="share">📨 코드 보내기</button>' + (r.online ? '' : ' <button class="btn alt" data-act="fadd">친구 입장 (연습용)</button>') + note + '</div>';
+    if (r.mode === 'royale') list = '<div class="card"><div class="sub" style="margin-top:0">' + L.length + '명 참가</div><div class="grid4 mini">' +
+      L.map(x => '<div class="mm' + (x.me ? ' me' : '') + '">' + art(x.me ? myChar() : rivalChar(x.n), 44) + '<span>' + x.n + '</span></div>').join('') + '</div></div>';
+    else list = '<div class="card">' + L.map(x => '<div class="mem"><span class="av">' + art(x.me ? myChar() : rivalChar(x.n), 40) + '</span><span>' + x.n + '</span></div>').join('') +
+      (L.length < 2 ? '<div class="mem sub">' + (r.mode === 'friend' ? '친구를 기다리는 중… 코드를 보내 보세요' : '상대를 찾는 중… 들어오면 바로 보여요') + '</div>' : '') + '</div>';
+    return '<h2>' + t.icon + ' ' + t.ko + ' · ' + M.icon + ' ' + M.ko + '</h2>' + top + list +
+      '<p class="sub">입장 마감: ' + t.close + ' · 정산: ' + t.settle + ' · 비교 기준: ' + t.unit + '<br>승점: ' + M.points.map((p, i) => (i + 1) + '위 +' + p).join(', ') + (M.points.length > 2 ? ' (그 아래 모두 +' + M.points[M.points.length - 1] + ')' : '') + ' · ' + M.winRank + '위 안이면 승</p>' +
+      '<button class="btn" data-go="proof">인증하러 가기</button> <button class="btn alt" data-go="battle">배틀 보기</button>' +
+      '<p style="margin-top:14px"><button class="btn alt" data-act="leave">방 나가기</button></p>';
+  },
+  proof() {
+    const t = CONFIG.types[S.type];
+    let body = '';
+    if (S.type === 'dawn') {
+      body = '<label>기상 시각 (연습용 입력)</label><input type="time" id="wk" value="' + (S.v.dawn != null ? hm(S.v.dawn) : '06:30') + '">' +
+        '<button class="btn" data-act="wake">기상 인증</button><p class="sub">' + (S.v.dawn != null ? hm(S.v.dawn) + ' 인증 완료' : '아직 인증 전') + '</p>';
+    } else if (S.type === 'book') {
+      const b = S.bk.book, note = S.msg ? '<p class="sub"><b style="color:var(--cyan)">' + S.msg + '</b></p>' : '';
+      if (!b) {
+        body = '<label>읽을 책 제목</label><input type="text" id="bkT" placeholder="예: 아주 작은 습관의 힘">' +
+          '<label>총 페이지 수</label><input type="number" id="bkN" inputmode="numeric" min="1" placeholder="예: 320">' +
+          '<button class="btn" data-act="bset">이 책으로 시작</button>' + note;
+      } else {
+        const pct = Math.round(b.page / b.total * 100), done = b.page >= b.total;
+        body = '<div class="bkt">📖 ' + esc(b.title) + '</div><div class="bkbar" role="img" aria-label="' + pct + '% 읽음"><i style="width:' + pct + '%"></i></div>' +
+          '<div class="bkn"><b>' + b.page + '</b> / ' + b.total + '쪽 · ' + pct + '%' + (done ? ' · 완독! 🎉' : ' · 남은 ' + (b.total - b.page) + '쪽') + '</div>' +
+          '<p>오늘 읽은 양: <b style="color:var(--yel)">' + bookToday() + '쪽</b></p>' +
+          (done ? '' : '<label>지금 몇 쪽까지 읽었나요?</label><input type="number" id="bkP" inputmode="numeric" min="0" max="' + b.total + '" value="' + b.page + '">' +
+            '<button class="btn" data-act="bread">읽은 만큼 인증</button> <button class="btn alt" data-act="bdemo">+10쪽 (연습용)</button>') +
+          note + '<p style="margin-top:14px"><button class="btn alt" data-act="bnew">' + (done ? '다음 책 시작' : '책 바꾸기') + '</button></p>';
+      }
+    } else if (S.type === 'study') {
+      body = '<video id="cam" class="cam" autoplay playsinline muted aria-label="내 라이브 화면"></video>' +
+        (S.cam ? '<div class="px" style="color:var(--red);font-size:10px;margin-top:8px">● LIVE</div>' : '') +
+        '<div class="timer" id="tm">00:00</div>' +
+        '<button class="btn" data-act="ltoggle">' + (S.cam ? '⏹ 라이브 종료' : '🔴 라이브 시작') + '</button> <button class="btn alt" data-act="sdemo">+10분 (연습용)</button>' +
+        '<p class="sub">공부 시간: ' + Math.floor(S.v.study) + '분 (카메라가 켜진 동안만 올라가요)' + (S.msg ? ' · <b style="color:var(--cyan)">' + S.msg + '</b>' : '') + '</p>';
+    } else {
+      const m = ironMins(), ok = m > 0 && S.photo.iron;
+      body = '<div class="timer" id="tm">' + clock(ironSecs()) + '</div>' +
+        (S.ironStart ? '<div class="px" style="color:var(--red);font-size:10px;text-align:center;margin-bottom:10px">● 운동 중</div>' : '') +
+        '<button class="btn" data-act="itoggle">' + (S.ironStart ? '⏸ 운동 끝' : '▶ 운동 시작') + '</button> <button class="btn alt" data-act="idemo">+10분 (연습용)</button>' +
+        '<p>오늘 운동한 시간: <b style="color:var(--yel)">' + fmtMin(m) + '</b></p>' +
+        '<label class="btn alt shot">📸 ' + (S.photo.iron ? '사진 다시 찍기' : '운동 인증 사진 찍기 (필수)') + '<input type="file" accept="image/*" capture="environment" data-ph="iron"></label>' +
+        (S.photo.iron ? '<img class="prev" src="' + S.photo.iron + '" alt="운동 인증 사진">' : '') +
+        '<p class="sub">' + (ok ? '✔ 인증 완료! 순위에 반영돼요' : !S.photo.iron ? '사진을 찍어야 운동 시간이 인정돼요' : '타이머로 운동 시간을 쌓아 주세요') + ' · 사진은 이 기기에서만 보여요</p>';
+    }
+    return '<h2>' + t.icon + ' ' + t.ko + ' 인증</h2><div class="card"><p class="sub" style="margin-top:0">' + t.how + '</p>' + body + '</div>';
+  },
+  battle() {
+    if (board().length < 2) return '<h2>배틀</h2><div class="card"><p>아직 상대가 없어요. 친구에게 방 코드를 보내 보세요!</p><button class="btn" data-go="room">방으로</button></div>';
+    const {L, me, tg, msg} = bInfo();
+    return '<h2>오늘의 상대: ' + tg.n + '</h2><div class="bars"><div><div class="hp l" id="hpbMe"><i id="hpMe" style="width:' + (100 - power(tg.v)) + '%"></i></div><div class="nm">YOU</div></div><div></div>' +
+      '<div><div class="hp" id="hpbRv"><i id="hpRv" style="width:' + (100 - power(me.v)) + '%"></i></div><div class="nm r">' + (tg.cpu ? 'CPU' : 'RIVAL') + '</div></div></div>' +
+      '<div class="ring" id="ring" data-tg="' + tg.n + '"><div><span class="fx" id="fMe"><span class="bd">' + myArt(100) + '</span></span></div><div class="vs">VS</div>' +
+      '<div><span class="fx rv" id="fRv"><span class="bd">' + art(rivalChar(tg.n), 100) + '</span></span></div><div class="ball" id="ball"></div><div class="pow" id="pow"></div></div>' +
+      '<p id="bmsg" style="text-align:center;font-weight:700">' + msg + '</p><h2>방 순위표</h2><div class="card">' + table(L, false) + '</div>';
+  },
+  result() {
+    const cur = S.type;
+    let total = 0, cards = '';
+    Object.keys(CONFIG.types).forEach(k => {
+      S.type = k;
+      const t = CONFIG.types[k];
+      if (!S.rooms[k]) { cards += '<section class="card"><div class="rch"><span style="font-size:30px">' + t.icon + '</span><div><div class="px" style="font-size:9px;color:var(--cyan)">' + t.en + '</div><b>' + t.ko + '</b></div><div class="rbig" style="font-size:16px">방 없음</div></div><p class="sub">이 종목 방에 들어가면 순위가 매겨져요.</p></section>'; return; }
+      const L = board(), me = L.find(x => x.me), M = roomMode();
+      if (me.v != null) total += me.pts;
+      cards += '<section class="card"><div class="rch"><span style="font-size:30px">' + t.icon + '</span><div><div class="px" style="font-size:9px;color:var(--cyan)">' + t.en + '</div><b>' + t.ko + ' · ' + M.icon + ' ' + M.ko + '</b></div>' +
+        '<div class="rbig">' + (me.v == null ? '기록 전' : me.rank + '위 · +' + me.pts + '점') + '</div></div>' +
+        table(L, true) + claimHtml(me) + '<p class="sub">정산: ' + t.settle + '</p></section>';
+    });
+    S.type = cur;
+    return '<h2>오늘의 결과</h2><div class="share"><div>' + myArt(90) + '</div><div class="big">오늘 승점 +' + total + '</div><div style="font-weight:700;margin-top:4px">🔥 ' + streakInfo().n + '일 연속 인증</div><div class="sub">' + CONFIG.appName + '</div></div>' +
+      '<p class="sub">종목마다 따로 순위를 매기고, 코인도 종목별로 받아요. 승점은 배틀 방식마다 달라요.</p>' + cards;
+  }
+};
+
+function go(scr) {
+  if (S.day !== todayKey()) freshDay();   // 자정이 지나면 새 하루
+  saveToday();
+  saveDay();
+  if (!S.type && !['pick', 'chars', 'result', 'my', 'hello'].includes(scr)) scr = 'pick';
+  else if ((scr === 'room' || scr === 'battle') && S.type && !S.rooms[S.type]) scr = 'mode';
+  S.scr = scr;
+  $('#app').innerHTML = SCREENS[scr]();
+  streakChip();
+  S.msg = '';
+  const cv = $('#cam'); if (cv && S.cam) cv.srcObject = S.cam;
+  document.querySelectorAll('nav button').forEach(b => {
+    if (b.dataset.go === (scr === 'mode' ? 'room' : scr)) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+}
+
+async function startLive() {
+  try {
+    S.cam = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+    S.studyStart = Date.now();
+  } catch (e) {
+    S.msg = '카메라를 켤 수 없어요. 카메라 권한을 허용해 주세요.';
+  }
+  go('proof');
+}
+
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if (g) return go(g.dataset.go);
+  const t = e.target.closest('[data-type]'); if (t) { S.type = t.dataset.type; S.matching = false; return go(S.rooms[S.type] ? 'room' : 'mode'); }
+  const dy = e.target.closest('[data-day]'); if (dy) { S.selDay = dy.dataset.day; return go('my'); }
+  const ch = e.target.closest('[data-char]');
+  if (ch) {
+    const c = CONFIG.characters.find(x => x.id === ch.dataset.char);
+    if (S.own.includes(c.id)) S.char = c.id;
+    else if (S.coins >= c.price) { S.coins -= c.price; S.own.push(c.id); S.char = c.id; S.msg = c.name + ' 획득!'; }
+    else S.msg = '코인이 ' + (c.price - S.coins) + '개 부족해요';
+    return go('chars');
+  }
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const act = a.dataset.act;
+  if (act === 'cal') {
+    S.calM += Number(a.dataset.d);
+    if (S.calM < 0) { S.calM = 11; S.calY--; }
+    if (S.calM > 11) { S.calM = 0; S.calY++; }
+    return go('my');
+  }
+  if (act === 'mfriend') { makeRoom(S.type, 'friend'); return go('room'); }
+  if (act === 'mjoin') {
+    const c = $('#code').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!/^GS[A-Z0-9]{4}$/.test(c)) { S.msg = '코드를 정확히 적어 주세요 (예: GS-7K2P)'; return go('mode'); }
+    makeRoom(S.type, 'friend', 'GS-' + c.slice(2)); return go('room');
+  }
+  if (act === 'mroyale') { makeRoom(S.type, 'royale'); return go('room'); }
+  if (act === 'mduel') {
+    const k = S.type; S.matching = true; go('mode');
+    return setTimeout(() => { if (!S.matching || S.type !== k) return; makeRoom(k, 'duel'); S.matching = false; if (S.scr === 'mode') go('room'); }, 1800);
+  }
+  if (act === 'leave') { delete S.rooms[S.type]; return go('mode'); }
+  if (act === 'fadd') {
+    const r = S.rooms[S.type], name = CONFIG.friendNames.find(n => !r.members.some(m => m[0] === n));
+    if (!name || r.members.length >= CONFIG.modes.friend.max - 1) S.msg = '방이 가득 찼어요';
+    else { r.members.push([name, mockVal(S.type)]); S.msg = name + ' 입장!'; }
+    return go('room');
+  }
+  if (act === 'share') {
+    const r = S.rooms[S.type], text = CONFIG.appName + ' ' + CONFIG.types[S.type].ko + ' 배틀 방에 들어와! 방 코드: ' + r.code;
+    const done = m => { S.msg = m; if (S.scr === 'room') go('room'); };
+    if (navigator.share) { navigator.share({title: CONFIG.appName, text}).catch(() => {}); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => done('초대 문구를 복사했어요. 카톡에 붙여넣어 보내 주세요'), () => done('친구에게 코드를 알려 주세요: ' + r.code));
+    else done('친구에게 코드를 알려 주세요: ' + r.code);
+    return;
+  }
+  if (act === 'seed') { seedHist(); return go('my'); }
+  if (act === 'delask') { S.delAsk = true; return go('my'); }
+  if (act === 'delno') { S.delAsk = false; return go('my'); }
+  if (act === 'delacc') { wipeLocal(); return; }
+  if (act === 'wipe') { S.hist = {}; saveHist(); S.sClaimed = []; saveClaimed(); return go('my'); }
+  if (act === 'sclaim') {
+    const m = CONFIG.streak.find(x => x.days === Number(a.dataset.d));
+    if (m && streakInfo().n >= m.days && !S.sClaimed.includes(m.days)) { S.coins += m.coin; S.sClaimed.push(m.days); saveClaimed(); S.msg = m.days + '일 연속 보너스 🪙 +' + m.coin + '!'; }
+    return go('my');
+  }
+  if (act === 'coindemo') { S.coins += 50; return go('chars'); }
+  if (act === 'claim') {
+    const k = a.dataset.k, cur = S.type;
+    S.type = k;
+    const me = board().find(x => x.me);
+    if (me.v != null && !S.claimed[k]) { S.coins += me.pts * CONFIG.coinPerPoint; S.claimed[k] = true; }
+    S.type = cur;
+    return go('result');
+  }
+  if (act === 'wake') { const v = $('#wk').value; if (v) { const [h, m] = v.split(':').map(Number); S.v.dawn = h * 60 + m; } }
+  if (act === 'bset') {
+    const t = $('#bkT').value.trim(), n = parseInt($('#bkN').value, 10);
+    if (!t || !(n > 0)) S.msg = '책 제목과 총 페이지 수를 적어 주세요';
+    else { S.bk.book = {title: t, total: n, page: 0}; saveBook(); }
+  }
+  if (act === 'bread') {
+    const p = parseInt($('#bkP').value, 10);
+    if (isNaN(p)) S.msg = '쪽수를 숫자로 적어 주세요';
+    else { readTo(p); S.msg = '인증 완료! 오늘 ' + bookToday() + '쪽'; }
+  }
+  if (act === 'bnew') { S.bk.book = null; saveBook(); }
+  if (act === 'ltoggle') {
+    if (!S.cam) return startLive();
+    S.v.study += (Date.now() - S.studyStart) / 60000;
+    S.cam.getTracks().forEach(t => t.stop());
+    S.cam = null; S.studyStart = 0;
+  }
+  if (act === 'sdemo') S.v.study += 10;
+  if (act === 'bdemo' && S.bk.book) readTo(S.bk.book.page + 10);
+  if (act === 'itoggle') {
+    if (S.ironStart) { S.v.iron += (Date.now() - S.ironStart) / 60000; S.ironStart = 0; } else S.ironStart = Date.now();
+  }
+  if (act === 'idemo') S.v.iron += 10;
+  go('proof');
+});
+document.addEventListener('input', e => { if (e.target.dataset.bind) S[e.target.dataset.bind] = e.target.value; });
+document.addEventListener('change', e => {
+  const k = e.target.dataset.ph, f = e.target.files && e.target.files[0];
+  if (!k || !f) return;
+  photoData(f, url => { S.photo[k] = url; go('proof'); });
+});
+setInterval(() => {
+  if (S.studyStart && Date.now() % 10000 < 1000) saveDay();   // 라이브 중에는 10초마다 저장
+  const el = $('#tm');
+  if (el && S.type === 'iron') { el.textContent = clock(ironSecs()); return; }
+  const st = S.type === 'study' ? S.studyStart : 0;
+  if (el && st) { const s = Math.floor((Date.now() - st) / 1000); el.textContent = pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+}, 1000);
+
+$('#appName').textContent = CONFIG.appName;
+document.title = CONFIG.appName;
+document.addEventListener('visibilitychange', saveDay);
+window.addEventListener('pagehide', saveDay);
+loadDay();
+go('pick');
+</script>
+<!-- 서버 연결: lib/supabase.js가 없으면 인터넷에서 불러와요 -->
+<script src="lib/supabase.js"></script>
+<script>if (!window.supabase) document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
+<script src="online.js"></script>
+</body>
+</html>
