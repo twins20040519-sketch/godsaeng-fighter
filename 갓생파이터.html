@@ -147,6 +147,8 @@ button.pk.dash.done{background:#241d6b}
 .dash .st.no{color:var(--sub);font-weight:500}
 .dash .st.run{color:var(--red)}
 .dash .rm{font-size:11px;color:var(--sub);font-weight:500}
+/* 서버에 연결된 실제 앱에서는 연습용 버튼을 숨겨요 */
+body.online .demo{display:none!important}
 .timer{font-family:var(--font-pixel);font-size:22px;text-align:center;margin:10px 0;color:var(--yel)}
 .prev{width:100%;aspect-ratio:4/3;object-fit:cover;border:3px solid #000;margin:6px 0}
 .share{text-align:center;padding:22px 12px;border:4px solid var(--yel);background:linear-gradient(160deg,var(--panel),#5a1d4a);box-shadow:6px 6px 0 #000}
@@ -575,7 +577,7 @@ const SCREENS = {
       calendar() +
       '<div class="legend">' + Object.keys(CONFIG.types).map(k => '<span><i style="background:' + CONFIG.types[k].color + '"></i>' + CONFIG.types[k].ko + '</span>').join('') + '</div>' +
       dayDetail(S.selDay || todayKey()) +
-      '<p class="sub">연습용</p><button class="btn alt" data-act="seed">샘플 기록 채우기</button> <button class="btn alt" data-act="wipe">기록 지우기</button>' +
+      '<p class="sub demo">연습용</p><button class="btn alt demo" data-act="seed">샘플 기록 채우기</button> <button class="btn alt demo" data-act="wipe">기록 지우기</button>' +
       '<h2>계정</h2><div class="card">' + (S.delAsk
         ? '<p style="margin-top:0"><b>정말 계정을 삭제할까요?</b></p><p class="sub">닉네임, 배틀 방, 모든 기록, 코인과 캐릭터가 지워지고 되돌릴 수 없어요.</p>' +
           '<button class="btn" data-act="delacc" style="background:var(--red);color:#fff">삭제하기</button> <button class="btn alt" data-act="delno">취소</button>'
@@ -592,7 +594,7 @@ const SCREENS = {
         return '<button class="pk' + (own ? '' : ' lock') + '" data-char="' + c.id + '" aria-pressed="' + (S.char === c.id) + '"><span class="ic">' + art(c, 64) + '</span><span class="px">' + c.name + '</span>' +
           (S.char === c.id ? '사용 중' : own ? '보유' : '🪙 ' + c.price) + '</button>';
       }).join('') + '</div>' +
-      '<p style="margin-top:14px"><button class="btn alt" data-act="coindemo">+50코인 (연습용)</button></p>';
+      '<p style="margin-top:14px"><button class="btn alt demo" data-act="coindemo">+50코인 (연습용)</button></p>';
   },
   pick() {
     const keys = Object.keys(CONFIG.types), st = {};
@@ -625,7 +627,7 @@ const SCREENS = {
     const note = S.msg ? '<p class="sub"><b style="color:var(--cyan)">' + S.msg + '</b></p>' : '';
     let top = '', list;
     if (r.mode === 'friend') top = '<div class="card code"><div class="sub" style="margin:0">방 코드</div><div class="cd px">' + r.code + '</div>' +
-      '<button class="btn" data-act="share">📨 코드 보내기</button>' + (r.online ? '' : ' <button class="btn alt" data-act="fadd">친구 입장 (연습용)</button>') + note + '</div>';
+      '<button class="btn" data-act="share">📨 코드 보내기</button>' + (r.online ? '' : ' <button class="btn alt demo" data-act="fadd">친구 입장 (연습용)</button>') + note + '</div>';
     if (r.mode === 'royale') list = '<div class="card"><div class="sub" style="margin-top:0">' + L.length + '명 참가</div><div class="grid4 mini">' +
       L.map(x => '<div class="mm' + (x.me ? ' me' : '') + '">' + art(x.me ? myChar() : rivalChar(x.n), 44) + '<span>' + x.n + '</span></div>').join('') + '</div></div>';
     else list = '<div class="card">' + L.map(x => '<div class="mem"><span class="av">' + art(x.me ? myChar() : rivalChar(x.n), 40) + '</span><span>' + x.n + '</span></div>').join('') +
@@ -653,20 +655,20 @@ const SCREENS = {
           '<div class="bkn"><b>' + b.page + '</b> / ' + b.total + '쪽 · ' + pct + '%' + (done ? ' · 완독! 🎉' : ' · 남은 ' + (b.total - b.page) + '쪽') + '</div>' +
           '<p>오늘 읽은 양: <b style="color:var(--yel)">' + bookToday() + '쪽</b></p>' +
           (done ? '' : '<label>지금 몇 쪽까지 읽었나요?</label><input type="number" id="bkP" inputmode="numeric" min="0" max="' + b.total + '" value="' + b.page + '">' +
-            '<button class="btn" data-act="bread">읽은 만큼 인증</button> <button class="btn alt" data-act="bdemo">+10쪽 (연습용)</button>') +
+            '<button class="btn" data-act="bread">읽은 만큼 인증</button> <button class="btn alt demo" data-act="bdemo">+10쪽 (연습용)</button>') +
           note + '<p style="margin-top:14px"><button class="btn alt" data-act="bnew">' + (done ? '다음 책 시작' : '책 바꾸기') + '</button></p>';
       }
     } else if (S.type === 'study') {
       body = '<video id="cam" class="cam" autoplay playsinline muted aria-label="내 라이브 화면"></video>' +
         (S.cam ? '<div class="px" style="color:var(--red);font-size:10px;margin-top:8px">● LIVE</div>' : '') +
         '<div class="timer" id="tm">00:00</div>' +
-        '<button class="btn" data-act="ltoggle">' + (S.cam ? '⏹ 라이브 종료' : '🔴 라이브 시작') + '</button> <button class="btn alt" data-act="sdemo">+10분 (연습용)</button>' +
+        '<button class="btn" data-act="ltoggle">' + (S.cam ? '⏹ 라이브 종료' : '🔴 라이브 시작') + '</button> <button class="btn alt demo" data-act="sdemo">+10분 (연습용)</button>' +
         '<p class="sub">공부 시간: ' + Math.floor(S.v.study) + '분 (카메라가 켜진 동안만 올라가요)' + (S.msg ? ' · <b style="color:var(--cyan)">' + S.msg + '</b>' : '') + '</p>';
     } else {
       const m = ironMins(), ok = m > 0 && S.photo.iron;
       body = '<div class="timer" id="tm">' + clock(ironSecs()) + '</div>' +
         (S.ironStart ? '<div class="px" style="color:var(--red);font-size:10px;text-align:center;margin-bottom:10px">● 운동 중</div>' : '') +
-        '<button class="btn" data-act="itoggle">' + (S.ironStart ? '⏸ 운동 끝' : '▶ 운동 시작') + '</button> <button class="btn alt" data-act="idemo">+10분 (연습용)</button>' +
+        '<button class="btn" data-act="itoggle">' + (S.ironStart ? '⏸ 운동 끝' : '▶ 운동 시작') + '</button> <button class="btn alt demo" data-act="idemo">+10분 (연습용)</button>' +
         '<p>오늘 운동한 시간: <b style="color:var(--yel)">' + fmtMin(m) + '</b></p>' +
         '<label class="btn alt shot">📸 ' + (S.photo.iron ? '사진 다시 찍기' : '운동 인증 사진 찍기 (필수)') + '<input type="file" accept="image/*" capture="environment" data-ph="iron"></label>' +
         (S.photo.iron ? '<img class="prev" src="' + S.photo.iron + '" alt="운동 인증 사진">' : '') +

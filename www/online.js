@@ -178,6 +178,7 @@ setInterval(async () => {
     const {data: prof, error} = await ON.sb.from('profiles').select('nickname, char').eq('id', ON.uid).maybeSingle();
     if (error) throw error;
     ON.ready = true;
+    document.body.classList.add('online');   // 연습용 버튼 숨기기
     if (!prof) return go('hello');
     ON.nick = prof.nickname; ON.char = prof.char;
     await syncRooms();

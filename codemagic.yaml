@@ -40,6 +40,8 @@ workflows:
           set_plist NSCameraUsageDescription "운동 인증 사진을 찍고 공부 라이브 화면을 보여주기 위해 카메라를 사용해요. 영상은 저장·전송되지 않아요." string
           set_plist NSPhotoLibraryUsageDescription "앨범에 있는 운동 인증 사진을 고를 때 사진에 접근해요. 사진은 기기 밖으로 전송되지 않아요." string
           set_plist ITSAppUsesNonExemptEncryption false bool
+          # 아이폰 전용 앱으로 (아이패드 스크린샷이 필요 없어요)
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2"/TARGETED_DEVICE_FAMILY = 1/g' ios/App/App.xcodeproj/project.pbxproj
           ICONDIR=ios/App/App/Assets.xcassets/AppIcon.appiconset
           for f in "$ICONDIR"/*.png; do cp resources/icon-1024.png "$f"; done
           cd ios/App
