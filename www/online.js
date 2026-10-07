@@ -51,7 +51,24 @@ async function refreshAll() {
       if (p.char) S.charOf[n] = p.char;
       return [n, rec ? rec.value : null];
     });
+    addCpus(k, r);
   });
+}
+
+/* ---------- 빈자리 CPU: 랜덤 1:1·10인 난투에 사람이 모자라면 CPU가 채워요 (사람이 오면 빠져요) ---------- */
+const CPU_FILL = {duel: 1, royale: 10};   // 나를 뺀 상대 수
+function addCpus(k, r) {
+  const need = (CPU_FILL[r.mode] || 0) - r.members.length;
+  if (need <= 0) return;
+  let seed = [...(r.id + todayKey())].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+  const [lo, hi] = CONFIG.range[k];
+  const names = CONFIG.strangerNames.map(n => [rnd(), n]).sort((x, y) => x[0] - y[0]).map(x => x[1]).filter(n => !r.members.some(m => m[0] === 'CPU ' + n));
+  for (let i = 0; i < need; i++) {
+    const n = 'CPU ' + names[i % names.length] + (i >= names.length ? i : '');
+    S.charOf[n] = CONFIG.characters[Math.floor(rnd() * CONFIG.characters.length)].id;
+    r.members.push([n, Math.round(lo + rnd() * (hi - lo))]);
+  }
 }
 
 /* ---------- 내 오늘 기록 올리기 (바뀐 것만) ---------- */
