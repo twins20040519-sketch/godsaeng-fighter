@@ -8,7 +8,16 @@
    ===================================================================== */
 const SUPA_URL = 'https://aygqavpuamuiilvagsrl.supabase.co';
 const SUPA_KEY = 'sb_publishable_2VXsdDCPqCQpX7pRPNiwxA_wKOf47DE';   // 공개용 키 (앱에 들어가도 괜찮아요)
-const POLL_MS = 8000;   // 같은 방 사람들 기록을 몇 ms마다 새로 받아올지
+const POLL_MS = 8000;
+const BLKEY = 'gsf-blocked-v1';   // 내가 차단한 사람 목록 (이 기기에 저장)
+const loadBlocked = () => { try { return JSON.parse(localStorage.getItem(BLKEY)) || []; } catch (e) { return []; } };
+const saveBlocked = () => { try { localStorage.setItem(BLKEY, JSON.stringify(ON.blocked)); } catch (e) {} };
+ON.blocked = loadBlocked();
+S.uidOf = {};
+const cleanNick = n => String(n || '').replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ _.\-]/g, '').trim().slice(0, 12);
+// 나쁜 말 닉네임 막기 (필요하면 단어를 더 추가하세요)
+const BAD_WORDS = ['시발', '씨발', 'ㅅㅂ', '병신', 'ㅂㅅ', '좆', '개새', '미친놈', '꺼져', '섹스', 'fuck', 'shit', 'bitch', 'sex', 'admin', '운영자', '관리자'];
+const isBadNick = n => BAD_WORDS.some(w => n.toLowerCase().replace(/\s/g, '').includes(w));   // 같은 방 사람들 기록을 몇 ms마다 새로 받아올지
 
 /* ---------- 닉네임 정하기 화면 ---------- */
 SCREENS.hello = () => '<h2>반가워요, 도전자!</h2><div class="card">' +
@@ -46,9 +55,12 @@ async function refreshAll() {
   const {data: recs} = await ON.sb.from('records').select('user_id, type, value').eq('day', todayKey()).in('user_id', uids);
   list.forEach(([k, r]) => {
     r.members = (mem || []).filter(m => m.room_id === r.id && m.user_id !== ON.uid).map(m => {
-      const p = m.profiles || {}, n = p.nickname || '???';
+      const p = m.profiles || {};
+      const blocked = ON.blocked.includes(m.user_id);
+      const n = blocked ? '차단한 사용자 ' + m.user_id.slice(0, 4) : (cleanNick(p.nickname) || '???');
+      S.uidOf[n] = m.user_id;
       const rec = (recs || []).find(x => x.user_id === m.user_id && x.type === k);
-      if (p.char) S.charOf[n] = p.char;
+      if (p.char && !blocked) S.charOf[n] = p.char;
       return [n, rec ? rec.value : null];
     });
     addCpus(k, r);
@@ -138,8 +150,9 @@ document.addEventListener('click', e => {
   const stop = () => { e.stopImmediatePropagation(); e.preventDefault(); };
   if (act === 'nick') {
     stop();
-    const n = $('#nick').value.trim();
-    if (!n || n === '나' || n.length > 12) { S.msg = '1~12자 닉네임을 적어 주세요'; return go('hello'); }
+    const raw = $('#nick').value.trim(), n = cleanNick(raw);
+    if (!n || n === '나' || n !== raw) { S.msg = '1~12자의 한글, 영어, 숫자로 정해 주세요 (특수문자 X)'; return go('hello'); }
+    if (isBadNick(n) || n.startsWith('CPU') || n.startsWith('차단한')) { S.msg = '쓸 수 없는 닉네임이에요. 다른 닉네임을 정해 주세요'; return go('hello'); }
     ON.sb.from('profiles').upsert({id: ON.uid, nickname: n, char: S.char}).then(({error}) => {
       if (error) return fail(error, 'hello');
       const first = !ON.nick; ON.nick = n; ON.char = S.char;
@@ -157,6 +170,20 @@ document.addEventListener('click', e => {
     return;
   }
   if (!ON.nick) return;
+  if (act === 'report' || act === 'block') {   // 신고·차단
+    stop();
+    const name = a.dataset.n, uid = S.uidOf[name];
+    if (!uid) return;
+    if (act === 'block') {
+      if (!ON.blocked.includes(uid)) ON.blocked.push(uid);
+      saveBlocked(); S.msg = '차단했어요. 이 사람의 닉네임과 캐릭터가 더 이상 보이지 않아요';
+      return refreshAll().then(() => go(S.scr), () => go(S.scr));
+    }
+    ON.sb.from('reports').insert({reporter: ON.uid, reported: uid, nickname: name, reason: 'inappropriate_nickname'})
+      .then(({error}) => { S.msg = error ? '신고하지 못했어요. 잠시 후 다시 시도해 주세요' : '신고했어요. 운영자가 확인 후 조치할게요'; go(S.scr); });
+    return;
+  }
+  if (act === 'unblock') { stop(); ON.blocked = []; saveBlocked(); S.msg = '차단을 모두 해제했어요'; return refreshAll().then(() => go('my'), () => go('my')); }
   if (act === 'mfriend') { stop(); createFriendRoom(k).then(() => go('room'), err => fail(err, 'mode')); }
   else if (act === 'mjoin') { stop(); joinByCode($('#code').value).catch(err => fail(err, 'mode')); }
   else if (act === 'mduel') { stop(); joinRandom(k, 'duel').catch(err => { S.matching = false; fail(err, 'mode'); }); }

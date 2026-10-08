@@ -149,6 +149,10 @@ button.pk.dash.done{background:#241d6b}
 .dash .rm{font-size:11px;color:var(--sub);font-weight:500}
 /* 서버에 연결된 실제 앱에서는 연습용 버튼을 숨겨요 */
 body.online .demo{display:none!important}
+/* 신고·차단 */
+.mod{margin-left:auto;display:flex;gap:4px}
+.mm .mod{margin:4px 0 0}
+.mod button{font:inherit;font-size:11px;padding:2px 6px;border:2px solid var(--line);background:transparent;color:var(--sub);cursor:pointer}
 .timer{font-family:var(--font-pixel);font-size:22px;text-align:center;margin:10px 0;color:var(--yel)}
 .prev{width:100%;aspect-ratio:4/3;object-fit:cover;border:3px solid #000;margin:6px 0}
 .share{text-align:center;padding:22px 12px;border:4px solid var(--yel);background:linear-gradient(160deg,var(--panel),#5a1d4a);box-shadow:6px 6px 0 #000}
@@ -283,6 +287,8 @@ function makeRoom(k, mode, code) {
     : shuffle(CONFIG.strangerNames).slice(0, mode === 'duel' ? 1 : CONFIG.modes.royale.size);
   S.rooms[k] = {mode, code: mode === 'friend' ? (code || newCode()) : '', members: names.map(n => [n, mockVal(k, mode === 'royale')])};
 }
+// 다른 사람 닉네임 옆 신고·차단 버튼 (온라인 방에서만)
+const modBtns = x => (!x.me && S.uidOf && S.uidOf[x.n]) ? '<span class="mod"><button data-act="report" data-n="' + esc(x.n) + '" aria-label="' + esc(x.n) + ' 신고">신고</button><button data-act="block" data-n="' + esc(x.n) + '" aria-label="' + esc(x.n) + ' 차단">차단</button></span>' : '';
 const roomMode = () => CONFIG.modes[(S.rooms[S.type] || {mode: 'friend'}).mode];
 function board() {
   const asc = S.type === 'dawn', r = S.rooms[S.type], M = roomMode();
@@ -293,7 +299,7 @@ function board() {
   return L;
 }
 const table = (L, pts) => L.map(x =>
-  '<div class="rk ' + (x.me ? 'me' : '') + '"><b>' + x.rank + '위</b><span>' + (x.cpu ? '🤖 ' : '') + x.n + '</span><span>' + show(x.v) + '</span><span class="pt">' + (pts && !x.cpu ? '+' + x.pts : '') + '</span></div>').join('');
+  '<div class="rk ' + (x.me ? 'me' : '') + '"><b>' + x.rank + '위</b><span>' + (x.cpu ? '🤖 ' : '') + esc(x.n) + '</span><span>' + show(x.v) + '</span><span class="pt">' + (pts && !x.cpu ? '+' + x.pts : '') + '</span></div>').join('');
 
 /* ===== 캐릭터 그림 (도트 픽셀): 위 look 값으로 그려져요. 'R(x, y, 가로, 세로, 색)'이 칸을 칠하는 명령이에요 ===== */
 const PW = 24, PH = 30;   // 도트 캔버스 크기 (가로 24칸, 세로 30칸)
@@ -556,7 +562,7 @@ document.addEventListener('animationend', e => {
 setInterval(() => {
   if (S.scr !== 'battle' || !$('#fMe') || !S.type) return;
   const {me, tg, msg} = bInfo();
-  if ($('#ring').dataset.tg !== tg.n) return go('battle');   // 순위가 바뀌어 상대가 바뀌면 다시 그려요
+  if ($('#ring').dataset.tg !== String(tg.n)) return go('battle');   // 순위가 바뀌어 상대가 바뀌면 다시 그려요
   $('#hpMe').style.width = (100 - power(tg.v)) + '%';
   $('#hpRv').style.width = (100 - power(me.v)) + '%';
   $('#bmsg').textContent = msg;
@@ -582,7 +588,8 @@ const SCREENS = {
         ? '<p style="margin-top:0"><b>정말 계정을 삭제할까요?</b></p><p class="sub">닉네임, 배틀 방, 모든 기록, 코인과 캐릭터가 지워지고 되돌릴 수 없어요.</p>' +
           '<button class="btn" data-act="delacc" style="background:var(--red);color:#fff">삭제하기</button> <button class="btn alt" data-act="delno">취소</button>'
         : '<p class="sub" style="margin-top:0">계정과 모든 기록을 지우고 처음부터 시작해요.</p><button class="btn alt" data-act="delask">계정 삭제</button>') +
-      '</div><p class="sub"><a href="privacy.html" style="color:var(--cyan)">개인정보 처리방침</a></p>';
+      (ON.blocked && ON.blocked.length ? '<p class="sub">차단한 사용자 ' + ON.blocked.length + '명 <button class="btn alt" data-act="unblock" style="font-size:12px;padding:4px 8px">차단 모두 해제</button></p>' : '') +
+      '</div><p class="sub"><a href="privacy.html" style="color:var(--cyan)">개인정보 처리방침</a> · <a href="support.html" style="color:var(--cyan)">고객 지원</a></p>';
   },
   chars() {
     const cur = CONFIG.characters.find(x => x.id === S.char);
@@ -629,8 +636,8 @@ const SCREENS = {
     if (r.mode === 'friend') top = '<div class="card code"><div class="sub" style="margin:0">방 코드</div><div class="cd px">' + r.code + '</div>' +
       '<button class="btn" data-act="share">📨 코드 보내기</button>' + (r.online ? '' : ' <button class="btn alt demo" data-act="fadd">친구 입장 (연습용)</button>') + note + '</div>';
     if (r.mode === 'royale') list = '<div class="card"><div class="sub" style="margin-top:0">' + L.length + '명 참가</div><div class="grid4 mini">' +
-      L.map(x => '<div class="mm' + (x.me ? ' me' : '') + '">' + art(x.me ? myChar() : rivalChar(x.n), 44) + '<span>' + x.n + '</span></div>').join('') + '</div></div>';
-    else list = '<div class="card">' + L.map(x => '<div class="mem"><span class="av">' + art(x.me ? myChar() : rivalChar(x.n), 40) + '</span><span>' + x.n + '</span></div>').join('') +
+      L.map(x => '<div class="mm' + (x.me ? ' me' : '') + '">' + art(x.me ? myChar() : rivalChar(x.n), 44) + '<span>' + esc(x.n) + '</span>' + modBtns(x) + '</div>').join('') + '</div></div>';
+    else list = '<div class="card">' + L.map(x => '<div class="mem"><span class="av">' + art(x.me ? myChar() : rivalChar(x.n), 40) + '</span><span>' + esc(x.n) + '</span>' + modBtns(x) + '</div>').join('') +
       (L.length < 2 ? '<div class="mem sub">' + (r.mode === 'friend' ? '친구를 기다리는 중… 코드를 보내 보세요' : '상대를 찾는 중… 들어오면 바로 보여요') + '</div>' : '') + '</div>';
     return '<h2>' + t.icon + ' ' + t.ko + ' · ' + M.icon + ' ' + M.ko + '</h2>' + top + list +
       '<p class="sub">입장 마감: ' + t.close + ' · 정산: ' + t.settle + ' · 비교 기준: ' + t.unit + '<br>승점: ' + M.points.map((p, i) => (i + 1) + '위 +' + p).join(', ') + (M.points.length > 2 ? ' (그 아래 모두 +' + M.points[M.points.length - 1] + ')' : '') + ' · ' + M.winRank + '위 안이면 승</p>' +
@@ -679,11 +686,11 @@ const SCREENS = {
   battle() {
     if (board().length < 2) return '<h2>배틀</h2><div class="card"><p>아직 상대가 없어요. 친구에게 방 코드를 보내 보세요!</p><button class="btn" data-go="room">방으로</button></div>';
     const {L, me, tg, msg} = bInfo();
-    return '<h2>오늘의 상대: ' + tg.n + '</h2><div class="bars"><div><div class="hp l" id="hpbMe"><i id="hpMe" style="width:' + (100 - power(tg.v)) + '%"></i></div><div class="nm">YOU</div></div><div></div>' +
+    return '<h2>오늘의 상대: ' + esc(tg.n) + '</h2><div class="bars"><div><div class="hp l" id="hpbMe"><i id="hpMe" style="width:' + (100 - power(tg.v)) + '%"></i></div><div class="nm">YOU</div></div><div></div>' +
       '<div><div class="hp" id="hpbRv"><i id="hpRv" style="width:' + (100 - power(me.v)) + '%"></i></div><div class="nm r">' + (tg.cpu ? 'CPU' : 'RIVAL') + '</div></div></div>' +
-      '<div class="ring" id="ring" data-tg="' + tg.n + '"><div><span class="fx" id="fMe"><span class="bd">' + myArt(100) + '</span></span></div><div class="vs">VS</div>' +
+      '<div class="ring" id="ring" data-tg="' + esc(tg.n) + '"><div><span class="fx" id="fMe"><span class="bd">' + myArt(100) + '</span></span></div><div class="vs">VS</div>' +
       '<div><span class="fx rv" id="fRv"><span class="bd">' + art(rivalChar(tg.n), 100) + '</span></span></div><div class="ball" id="ball"></div><div class="pow" id="pow"></div></div>' +
-      '<p id="bmsg" style="text-align:center;font-weight:700">' + msg + '</p><h2>방 순위표</h2><div class="card">' + table(L, false) + '</div>';
+      '<p id="bmsg" style="text-align:center;font-weight:700">' + esc(msg) + '</p><h2>방 순위표</h2><div class="card">' + table(L, false) + '</div>';
   },
   result() {
     const cur = S.type;
