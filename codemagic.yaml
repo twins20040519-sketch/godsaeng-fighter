@@ -45,7 +45,7 @@ workflows:
           ICONDIR=ios/App/App/Assets.xcassets/AppIcon.appiconset
           for f in "$ICONDIR"/*.png; do cp resources/icon-1024.png "$f"; done
           cd ios/App
-          agvtool new-marketing-version 1.0.0
+          agvtool new-marketing-version 1.0.1
           agvtool new-version -all $BUILD_NUMBER
 
       - name: 서명 설정

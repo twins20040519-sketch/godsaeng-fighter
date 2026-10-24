@@ -125,6 +125,8 @@ button.pk[aria-pressed=true]{border-color:var(--yel);background:#2d2480}
 .wk{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:14px 0 4px;text-align:center;font-size:11px;color:var(--sub)}
 .wk i{display:grid;place-items:center;aspect-ratio:1;margin-top:4px;border:2px solid var(--line);font-style:normal;font-size:14px;color:#000}
 .wk i.on{background:var(--yel);border-color:#000}
+.wk i.sh{background:var(--cyan);border-color:#000}
+.shop{display:flex;gap:12px;align-items:center}.shop .ic{font-size:42px}.shop .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .wk i.td{outline:2px dashed var(--yel);outline-offset:1px}
 .nx{margin-top:12px;font-size:13px}
 .nxbar{height:14px;background:#000;border:2px solid #fff;margin-top:6px}
@@ -378,6 +380,11 @@ const SKEY = 'gsf-streak-v1';   // 받은 연속 보너스를 이 브라우저�
 const loadClaimed = () => { try { return JSON.parse(localStorage.getItem(SKEY)) || []; } catch (e) { return []; } };
 const saveClaimed = () => { try { localStorage.setItem(SKEY, JSON.stringify(S.sClaimed)); } catch (e) {} };
 S.sClaimed = loadClaimed();
+// ── 스트릭 보호권: 하루 빠져도 연속 기록을 지켜줘요 (빠진 날 자동 사용) ──
+const SHKEY = 'gsf-shield-v1', SHIELD_COIN = 150;
+const loadShield = () => { try { const v = JSON.parse(localStorage.getItem(SHKEY)); return v && Array.isArray(v.days) ? v : {n: 0, days: []}; } catch (e) { return {n: 0, days: []}; } };
+const saveShield = () => { try { localStorage.setItem(SHKEY, JSON.stringify(S.sh)); } catch (e) {} };
+S.sh = loadShield();
 
 /* ===== 오늘 하루 기록 저장: 새로고침해도 오늘 기록이 남아요 (날짜가 바뀌면 새로 시작) ===== */
 const DKEY = 'gsf-today-v1', PKEY = 'gsf-profile-v1';
@@ -421,15 +428,27 @@ function dayStatus(k) {
   return out;
 }
 const hasDay = k => !!S.hist[k] && Object.keys(S.hist[k]).length > 0;
+const shDay = k => S.sh.days.includes(k);
+const covered = k => hasDay(k) || shDay(k);
+// 어제까지 빠진 날이 있고, 그 앞에 연속 기록이 있으면 보호권을 자동으로 써요
+function autoShield() {
+  if (!S.sh.n) return;
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  const miss = [];
+  while (!covered(dKey(d)) && miss.length <= S.sh.n) { miss.push(dKey(d)); d.setDate(d.getDate() - 1); }
+  if (!miss.length || miss.length > S.sh.n || !hasDay(dKey(d)) && !shDay(dKey(d))) return;
+  S.sh.n -= miss.length; S.sh.days.push(...miss); saveShield();
+  S.msg = '🛡️ 보호권 ' + miss.length + '개로 연속 기록을 지켰어요!';
+}
 function streakInfo() {
   const d = new Date(), today = hasDay(dKey(d));
   if (!today) d.setDate(d.getDate() - 1);   // 오늘 아직 안 했으면 어제까지의 연속 기록을 보여줘요
   let n = 0;
-  while (hasDay(dKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  while (covered(dKey(d))) { if (hasDay(dKey(d))) n++; d.setDate(d.getDate() - 1); }   // 보호권 쓴 날은 끊기지 않지만 일수에 더하진 않아요
   let best = 0, cur = 0, prev = null;
-  Object.keys(S.hist).filter(hasDay).sort().forEach(k => {
-    const t = new Date(k + 'T00:00').getTime();
-    cur = prev != null && Math.round((t - prev) / 864e5) === 1 ? cur + 1 : 1;
+  [...new Set(Object.keys(S.hist).filter(hasDay).concat(S.sh.days))].sort().forEach(k => {
+    const t = new Date(k + 'T00:00').getTime(), add = hasDay(k) ? 1 : 0;
+    cur = prev != null && Math.round((t - prev) / 864e5) === 1 ? cur + add : add;
     best = Math.max(best, cur); prev = t;
   });
   const gift = CONFIG.streak.find(m => n >= m.days && !S.sClaimed.includes(m.days));
@@ -447,8 +466,8 @@ function streakCard() {
   let wk = '';
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    const on = hasDay(dKey(d));
-    wk += '<div>' + (i === 0 ? '오늘' : days[d.getDay()]) + '<i class="' + (on ? 'on' : '') + (i === 0 ? ' td' : '') + '">' + (on ? '✔' : '') + '</i></div>';
+    const on = hasDay(dKey(d)), sh = !on && shDay(dKey(d));
+    wk += '<div>' + (i === 0 ? '오늘' : days[d.getDay()]) + '<i class="' + (on ? 'on' : sh ? 'sh' : '') + (i === 0 ? ' td' : '') + '">' + (on ? '✔' : sh ? '🛡' : '') + '</i></div>';
   }
   const nx = st.next ? '<div class="nx">다음 보너스: <b>' + st.next.days + '일 연속</b> 🪙 ' + st.next.coin + ' · ' + (st.next.days - st.n) + '일 남았어요' +
     '<div class="nxbar"><i style="width:' + Math.round(st.n / st.next.days * 100) + '%"></i></div></div>' : '<div class="nx">모든 연속 보너스를 달성했어요! 👑</div>';
@@ -460,6 +479,14 @@ function streakCard() {
       return '<div class="' + (got ? 'got' : '') + '"><b>' + m.days + '일</b>🪙 ' + m.coin + '<br>' +
         (got ? '받음 ✔' : can ? '<button class="btn" data-act="sclaim" data-d="' + m.days + '">받기</button>' : '🔒') + '</div>';
     }).join('') + '</div><p class="sub">하루에 한 종목이라도 인증하면 그날은 성공이에요. 보너스는 처음 달성할 때 한 번 받아요.</p>';
+}
+function shieldCard() {
+  const P = IAP.plugin();
+  const buy = IAP.key.includes('REPLACE') ? '' : P ? (IAP.product ? '<button class="btn" data-act="shbuy"' + (IAP.busy ? ' disabled' : '') + '>🛡️×3 · ' + IAP.product.priceString + '</button>' : '<span class="sub">상점 불러오는 중…</span>')
+    : '<span class="sub" style="flex-basis:100%;margin:0">3개 묶음은 아이폰 앱에서 살 수 있어요</span>';
+  return '<h2>스트릭 보호권</h2><div class="card"><div class="shop"><span class="ic">🛡️</span><div><div class="big2">' + S.sh.n + '개 보유</div>' +
+    '<div class="sub" style="margin:2px 0 0">하루 인증을 못 해도 연속 기록이 끊기지 않아요. 빠진 날에 자동으로 1개씩 써요.</div></div></div>' +
+    '<div class="btns"><button class="btn alt" data-act="shcoin">🪙 ' + SHIELD_COIN + '코인으로 1개</button>' + buy + '</div></div>';
 }
 function saveHist() { try { localStorage.setItem(HKEY, JSON.stringify(S.hist)); } catch (e) {} }
 function saveToday() {
@@ -571,12 +598,46 @@ setInterval(() => {
   attack(Math.random() < pMe, Math.random() < FIGHT.superChance);
 }, FIGHT.every);
 
+// ── 인앱 결제 (RevenueCat · 아이폰 앱에서만) ──
+const IAP = {
+  key: 'appl_REPLACE_WITH_REVENUECAT_KEY',          // RevenueCat → API keys → App Store 공개 키
+  id: 'com.godsaengfighter.app.shield3',            // App Store Connect 인앱 구입 '제품 ID'
+  product: null, busy: false, _p: null,
+  plugin() {
+    const C = window.Capacitor;
+    if (!C || !C.isNativePlatform || !C.isNativePlatform() || this.key.includes('REPLACE')) return null;
+    if (!this._p) this._p = (C.Plugins && C.Plugins.Purchases) || (C.registerPlugin && C.registerPlugin('Purchases')) || null;
+    return this._p;
+  }
+};
+async function iapInit() {
+  const P = IAP.plugin(); if (!P) return;
+  try {
+    await P.configure({apiKey: IAP.key});
+    const r = await P.getProducts({productIdentifiers: [IAP.id], type: 'NON_SUBSCRIPTION'});
+    IAP.product = (r && r.products || [])[0] || null;
+  } catch (e) { IAP.product = null; }
+  if (S.scr === 'my') go('my');
+}
+async function iapBuy() {
+  const P = IAP.plugin(); if (!P || !IAP.product || IAP.busy) return;
+  IAP.busy = true; S.msg = ''; go('my');
+  try {
+    await P.purchaseStoreProduct({product: IAP.product});
+    S.sh.n += 3; saveShield(); S.msg = '🛡️ 보호권 3개를 받았어요! 응원해 줘서 고마워요 🙏';
+  } catch (e) {
+    const cancel = e && (e.userCancelled || String(e.code) === '1' || /cancel/i.test(e.message || ''));
+    S.msg = cancel ? '결제를 취소했어요' : '결제를 마치지 못했어요. 잠시 뒤 다시 해 주세요';
+  }
+  IAP.busy = false; go('my');
+}
+
 const SCREENS = {
   my() {
     return '<h2>마이페이지</h2><div class="card" style="display:flex;align-items:center;gap:14px">' + myArt(70) +
       '<div><b>' + (ON.nick ? esc(ON.nick) + ' · ' : '') + myChar().name + '</b><div class="sub" style="margin:2px 0 0">🪙 ' + S.coins + ' 코인' + (ON.ready ? ' · 🟢 온라인' : ' · ⚪ 연습 모드') + '</div>' +
       (ON.ready ? '<button class="btn alt" data-go="hello" style="margin-top:8px;font-size:12px;padding:5px 10px">닉네임 바꾸기</button>' : '') + '</div></div>' +
-      streakCard() + '<h2>종목별 전적</h2>' + Object.keys(CONFIG.types).map(statCard).join('') +
+      streakCard() + shieldCard() + '<h2>종목별 전적</h2>' + Object.keys(CONFIG.types).map(statCard).join('') +
       '<p class="sub">승패 기준: ' + Object.values(CONFIG.modes).map(m => m.ko + ' ' + m.winRank + '위 안').join(' · ') + '이면 승이에요.</p>' +
       '<h2>' + S.calY + '년 ' + (S.calM + 1) + '월</h2>' +
       '<div style="display:flex;gap:8px"><button class="btn alt" data-act="cal" data-d="-1" aria-label="이전 달">◀</button><button class="btn alt" data-act="cal" data-d="1" aria-label="다음 달">▶</button></div>' +
@@ -718,6 +779,7 @@ function go(scr) {
   if (!S.type && !['pick', 'chars', 'result', 'my', 'hello'].includes(scr)) scr = 'pick';
   else if ((scr === 'room' || scr === 'battle') && S.type && !S.rooms[S.type]) scr = 'mode';
   S.scr = scr;
+  autoShield();
   $('#app').innerHTML = SCREENS[scr]();
   streakChip();
   S.msg = '';
@@ -788,12 +850,18 @@ document.addEventListener('click', e => {
   if (act === 'delask') { S.delAsk = true; return go('my'); }
   if (act === 'delno') { S.delAsk = false; return go('my'); }
   if (act === 'delacc') { wipeLocal(); return; }
-  if (act === 'wipe') { S.hist = {}; saveHist(); S.sClaimed = []; saveClaimed(); return go('my'); }
+  if (act === 'wipe') { S.hist = {}; saveHist(); S.sh = {n: 0, days: []}; saveShield(); S.sClaimed = []; saveClaimed(); return go('my'); }
   if (act === 'sclaim') {
     const m = CONFIG.streak.find(x => x.days === Number(a.dataset.d));
     if (m && streakInfo().n >= m.days && !S.sClaimed.includes(m.days)) { S.coins += m.coin; S.sClaimed.push(m.days); saveClaimed(); S.msg = m.days + '일 연속 보너스 🪙 +' + m.coin + '!'; }
     return go('my');
   }
+  if (act === 'shcoin') {
+    if (S.coins >= SHIELD_COIN) { S.coins -= SHIELD_COIN; S.sh.n++; saveShield(); saveDay(); S.msg = '🛡️ 보호권 1개를 샀어요!'; }
+    else S.msg = '코인이 ' + (SHIELD_COIN - S.coins) + '개 부족해요';
+    return go('my');
+  }
+  if (act === 'shbuy') { iapBuy(); return; }
   if (act === 'coindemo') { S.coins += 50; return go('chars'); }
   if (act === 'claim') {
     const k = a.dataset.k, cur = S.type;
@@ -848,6 +916,8 @@ document.title = CONFIG.appName;
 document.addEventListener('visibilitychange', saveDay);
 window.addEventListener('pagehide', saveDay);
 loadDay();
+autoShield();
+iapInit();
 go('pick');
 </script>
 <!-- 서버 연결: lib/supabase.js가 없으면 인터넷에서 불러와요 -->
